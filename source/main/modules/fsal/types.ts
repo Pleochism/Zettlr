@@ -64,7 +64,6 @@ export interface DirDescriptor extends FSMetaInfo {
   _settings: any
   children: Array<MDFileDescriptor|DirDescriptor>
   attachments: OtherFileDescriptor[]
-  dirNotFoundFlag?: boolean // If the flag is set & true this directory has not been found
 }
 
 /**
@@ -114,7 +113,6 @@ export interface DirMeta extends FSMetaInfo {
   project: any
   sorting: string
   icon: string
-  dirNotFoundFlag?: boolean // If the flag is set & true this directory has not been found
 }
 
 /**

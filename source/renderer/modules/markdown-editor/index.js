@@ -251,22 +251,8 @@ module.exports = class MarkdownEditor extends EventEmitter {
    * @param  {Number} line The line to pull into view
    */
   jtl (line) {
-    const { from, to } = this._instance.getViewport()
-    const viewportSize = to - from
-    // scrollIntoView first and foremost pulls something simply into view, but
-    // we want it to be at the top of the window as expected by the user, so
-    // we need to pull in a full viewport, beginning at the corresponding line
-    // and expanding unto one full viewport size.
-    this._instance.scrollIntoView({
-      from: {
-        line: line,
-        ch: 0
-      },
-      to: {
-        line: line + viewportSize,
-        ch: 0
-      }
-    })
+    this._instance.setCursor({ 'line': line, 'ch': 0 })
+    this._instance.refresh()
   }
 
   /**
@@ -302,18 +288,10 @@ module.exports = class MarkdownEditor extends EventEmitter {
       // that are wanted are re-rendered. This will always execute on preferences
       // setting until we have established some cool "what has actually changed?"
       // indication in the settings provider, but this should not be too annoying.
-
-      // DEBUG: This function is always called during document swap which
-      // increases load time and induces a significant visual lag.
-      // Right now it seems prudent to simply leave "unwanted" markers in place.
-      // TODO: Devise a better mechanism of value caching to determine which
-      // marks need to be removed, and only do so when one of the values have
-      // indeed changed.
-
-      // const markers = this._instance.doc.getAllMarks()
-      // for (let marker of markers) {
-      //   marker.clear()
-      // }
+      const markers = this._instance.doc.getAllMarks()
+      for (let marker of markers) {
+        marker.clear()
+      }
     }
 
     // Second, set all options on the CodeMirror instance. This will internally

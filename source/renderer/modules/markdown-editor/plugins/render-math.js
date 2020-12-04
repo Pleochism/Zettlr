@@ -12,9 +12,6 @@
 })(function (CodeMirror) {
   'use strict'
 
-  const katex = require('katex')
-  require('katex/dist/contrib/mhchem.js') // modify katex module
-
   // Matches all inlines according to the Pandoc documentation
   // on its tex_math_dollars-extension.
   // More information: https://pandoc.org/MANUAL.html#math
@@ -129,7 +126,7 @@
         // Enable on-click closing of rendered Math elements.
         elem.onclick = (e) => { textMarker.clear() }
 
-        katex.render(myMarker.eq, elem, { throwOnError: false })
+        require('katex').render(myMarker.eq, elem, { throwOnError: false })
 
         // Now the marker has obviously changed
         textMarker.changed()
