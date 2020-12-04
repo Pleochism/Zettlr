@@ -1,3 +1,25 @@
+# 1.8.1
+
+## GUI and Functionality
+
+- Fixed the non-working reveal.js exports.
+- Add support for chemical formulae in KaTeX (thanks to @likeadoc for implementing).
+- Design fix for the color swatches in the tag manager.
+- Fix preferences not opening on the corresponding menu item (Windows/Linux).
+- Fix the parent menu not closing on a click in the child menu (submenu).
+- Fixed rendering of footnote references.
+- Jumping to specific headings now places those headings at the top of the viewport, instead of simply pulling it into view.
+- Fix an edge condition where tags within code blocks would be detected if they contained an odd number of `-characters.
+- Re-instated the directory rescanning functionality.
+
+## Under the Hood
+
+- The release tags will now be created with a prefix "v" again. This should fix various issues around the assumption of the "v" being the correct GitHub tag.
+- Fix all linter errors. PRs should now receive a nice green checkmark instead of the error symbol (unless there are new errors in the PR itself).
+- Remove asynchronous initialisation logic from the main object's constructor.
+- Added a footnote testing file.
+- Significantly increase document loading times by deferring text marking functions to idle times in the browser's event loop, using `requestIdleCallback`. This induces a small visual lag, but the documents load much faster, and arguably, it's better this way because one doesn't have to wait until the document has fully rendered before one can start to write. (Some testing with regard to long-term writing performance might make sense.)
+
 # 1.8.0
 
 ## Breaking Changes
