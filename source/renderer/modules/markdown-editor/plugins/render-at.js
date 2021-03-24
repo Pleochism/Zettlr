@@ -31,8 +31,6 @@
         continue
       }
 
-      console.log("Contains at");
-
       // Now get the precise beginning of the match and its end
       let curFrom = { 'line': i, 'ch': match.index }
       let curTo = { 'line': i, 'ch': match.index + match[1].length + match[2].length + match[3].length }
