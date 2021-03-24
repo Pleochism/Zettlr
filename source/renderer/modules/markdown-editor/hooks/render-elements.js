@@ -37,4 +37,9 @@ function renderElements (cm) {
   if (render.headingTags) cm.execCommand('markdownRenderHTags')
   if (render.iframes) cm.execCommand('markdownRenderIframes')
   if (render.wysiwyg) cm.execCommand('markdownWYSIWYG')
+
+  cm.execCommand('markdownRenderAtTags')
+  cm.execCommand('markdownRenderListTags')
+  cm.execCommand('markdownRenderListSubtags')
+  cm.execCommand('markdownRenderHrTags')
 }

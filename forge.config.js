@@ -15,7 +15,7 @@ const isArm64 = (idxArch > -1 && process.argv[idxArch + 1] === 'arm64') || thisA
 const is64Bit = (idxArch > -1 && process.argv[idxArch + 1] === 'x64') || thisArch === 'x64'
 
 // macOS has Rosetta 2 built-in, so we can bundle Pandoc 64bit
-const supportsPandoc = is64Bit || (isMacOS && isArm64)
+const supportsPandoc = false;//is64Bit || (isMacOS && isArm64)
 
 if (supportsPandoc && isWin32) {
   console.log('\nBundling Pandoc for Windows 64 bit!')
