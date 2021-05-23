@@ -42,4 +42,5 @@ function renderElements (cm) {
   cm.execCommand('markdownRenderListTags')
   cm.execCommand('markdownRenderListSubtags')
   cm.execCommand('markdownRenderHrTags')
+  // cm.execCommand('markdownRenderNarrationTags')
 }

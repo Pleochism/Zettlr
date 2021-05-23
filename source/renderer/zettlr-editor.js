@@ -26,7 +26,7 @@ const MarkdownEditor = require('./modules/markdown-editor')
 // Finally load CodeMirror itself
 const CodeMirror = require('codemirror')
 
-const SAVE_TIMEOUT = 5000 // Save every 5 seconds
+const SAVE_TIMEOUT = 5000 * 999999 // Save every 5 seconds
 
 /**
 * This class propably has the most `require`s in it, because it loads all

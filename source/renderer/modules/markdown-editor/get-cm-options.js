@@ -61,7 +61,7 @@ module.exports = function () {
     // Soft-wrap longer lines
     lineWrapping: true,
     // Pandoc requires 4 spaces indentation, which is the default
-    indentUnit: 4,
+    indentUnit: 8,
     autoCloseBrackets: true,
     // Use the default keyMap (needs to be specified for changes to be applied)
     keyMap: 'default',
