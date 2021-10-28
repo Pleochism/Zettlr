@@ -3,7 +3,7 @@
  * BEGIN HEADER
  *
  * Contains:        StatsProvider
- * CVM-Role:        Provider
+ * CVM-Role:        Service Provider
  * Maintainer:      Hendrik Erz
  * License:         GNU GPL v3
  *
@@ -95,11 +95,15 @@ export default class StatsProvider {
   /**
    * Recomputes the statistical properties of the stats
    */
-  _recompute (): void {
+  async _recompute (): Promise<void> {
     // Make sure we have a today-count
     if (this.stats.wordCount[this.today] === undefined) {
       this.stats.wordCount[this.today] = 0
     }
+
+    // Trigger a save. _recompute is being called from all the different setters
+    // after anything changes. NOTE: Remember this for future stuff!
+    await this.save()
 
     // Compute average
     let allwords = []
@@ -144,8 +148,8 @@ export default class StatsProvider {
         today: parsedData.today,
         sumMonth: parsedData.sumMonth
       }
-      this._recompute()
-    } catch (e) {
+      this._recompute().catch(e => global.log.error(`[Stats Provider] Error during recomputing: ${e.message as string}`, e))
+    } catch (err) {
       // Write initial file
       await this.save()
     }
@@ -169,7 +173,7 @@ export default class StatsProvider {
       this.stats.wordCount[this.today] = this.stats.wordCount[this.today] + val
     }
 
-    this._recompute()
+    this._recompute().catch(e => global.log.error(`[Stats Provider] Error during recomputing: ${e.message as string}`, e))
   }
 
   /**
@@ -183,7 +187,7 @@ export default class StatsProvider {
       this.stats.pomodoros[this.today] = this.stats.pomodoros[this.today] + 1
     }
 
-    this._recompute()
+    this._recompute().catch(e => global.log.error(`[Stats Provider] Error during recomputing: ${e.message as string}`, e))
   }
 
   /**
@@ -191,6 +195,7 @@ export default class StatsProvider {
    */
   async save (): Promise<void> {
     // (Over-)write the configuration
+    global.log.info('[Stats Provider] Writing statistics to file')
     await fs.writeFile(this.statsFile, JSON.stringify(this.stats), { encoding: 'utf8' })
   }
 

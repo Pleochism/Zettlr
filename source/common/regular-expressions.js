@@ -22,7 +22,7 @@ module.exports = {
    */
   'getBlockMathRE': function () {
     return RegExp(
-      /^\s*\$\$\s*$/.source
+      /^(\s*\$\$)\s*$/.source
     )
   },
 
@@ -42,22 +42,6 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches MarkDown Citations.
-   *
-   * Should match everything permittible -- first alternative are the huge
-   * blocks, second alternative are the simple @ID-things, both recognised by
-   * Pandoc citeproc.
-   * citationRE is taken from the Citr library (the extraction regex)
-   *
-   * @return  {RegExp}              The compiled Regular Expression
-   */
-  'getCitationRE': function () {
-    return RegExp(
-      /(\[(?:[^[\]]*@[^[\]]+)\])|(?<=\s|^)(@[\p{L}\d_][\p{L}\d_:.#$%&\-+?<>~/]*)/.source,
-      'gu')
-  },
-
-  /**
    * Returns a regular expression that matches MarkDown inline code.
    *
    * @return  {RegExp}              The compiled Regular Expression
@@ -73,10 +57,21 @@ module.exports = {
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
-  'getCodeBlockRE': function () {
-    return RegExp(
-      /^\s{0,3}(`{3,}|~{3,})/.source
-    )
+  'getCodeBlockRE': function (multiline = false) {
+    if (!multiline) {
+      // The user only wants to match a single line
+      return RegExp(
+        /^\s{0,3}(`{3,}|~{3,})/.source
+      )
+    } else {
+      // `multiline` indicates the user has a complete Markdown document.
+      // This RegExp matches backtick and tilde code blocks, and indented code
+      // blocks.
+      return RegExp(
+        /^`{3,}.+?^`{3,}|^[ \t]{4,}.+?$|^~{3,}.+?^~{3,}/gms.source,
+        'gms'
+      )
+    }
   },
 
   /**
@@ -220,7 +215,13 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that can detect Markdown images globally
+   * Returns a regular expression that can detect Markdown images globally.
+   * Matches the following groups:
+   *
+   * 1. The ALT-text in square brackets
+   * 2. The full contents of the round brackets
+   * 3. Only the title-text in quotes within group 2
+   * 4. Pandoc-specific attributes in curly braces
    *
    * @param   {boolean}  multiline  Whether or not the regular expression should be multiline
    *
@@ -282,7 +283,7 @@ module.exports = {
   'getInlineMathRenderRE': function (global = false) {
     let flag = (global) ? 'g' : ''
     return RegExp(
-      /(?<!\\)\${1,2}([^\s\\])\${1,2}(?!\d)|(?<!\\)\${1,2}([^\s].*?[^\s\\])\${1,2}(?!\d)/.source,
+      /(?<![\\$])(?<dollar>\${1,2})(?![\s$])(?<eq>.+?)(?<![\s\\])\k<dollar>(?!\d)/.source,
       flag)
   },
   /**
@@ -319,7 +320,7 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches MarkDown Ordered lists.
+   * Returns a regular expression that matches Markdown Ordered lists.
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
@@ -330,7 +331,7 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches MarkDown task lists.
+   * Returns a regular expression that matches Markdown task lists.
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
@@ -341,20 +342,24 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches unordered Markdown lists.
+   * Returns a regular expression that matches ordered lists, unordered lists,
+   * task lists, and blockquotes. Captures the following:
    *
-   * Includes a capture group to capture list tokens.
+   * 1. The amount of whitespace before the list token
+   * 2. The list token itself
+   * 3. In case of an ordered list the list number
+   * 4. The amount of following whitespace (after the list token)
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
   'getListTokenRE': function () {
     return RegExp(
-      /^(\s*)(>[> ]*|[*+-] \[[x ]\]|[*+-]|(\d+)[.)])(\s*)$/.source
+      /^(\s*)(>[> ]*|[*+-] \[[x ]\]|[*+-]|(\d+)[.)])(\s*)/.source
     )
   },
 
   /**
-   * Returns a regular expression that matches unordered MarkDown lists.
+   * Returns a regular expression that matches unordered Markdown lists.
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
@@ -365,7 +370,7 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches unordered MarkDown lists.
+   * Returns a regular expression that matches unordered Markdown lists.
    *
    * Used in CodeMirror MarkDown shortcuts.
    *
@@ -378,7 +383,7 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches MarkDown files.
+   * Returns a regular expression that matches Markdown files.
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
@@ -404,7 +409,7 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches MarkDown Tables.
+   * Returns a regular expression that matches Markdown Tables.
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
@@ -415,7 +420,7 @@ module.exports = {
   },
 
   /**
-   * Returns a regular expression that matches MarkDown table headings.
+   * Returns a regular expression that matches Markdown table headings.
    *
    * @return  {RegExp}              The compiled Regular Expression
    */
@@ -470,12 +475,13 @@ module.exports = {
   /**
    * Returns a regular expression that matches Zettelkasten IDs.
    *
-   * @return  {RegExp}              The compiled Regular Expression
+   * @param   {boolean}  [global=false]  Whether this RegExp should have the global flag.
+   * @return  {RegExp}                   The compiled Regular Expression
    */
-  'getZknTagRE': function () {
+  'getZknTagRE': function (global = false) {
     return RegExp(
-      /##?[^\s,.:;…!?"'`»«“”‘’—–@$%&*#^+~÷\\/|<=>[\](){}]+#?/.source,
-      'i')
+      /(?<=^|\s|[({[])#(#?[^\s,.:;…!?"'`»«“”‘’—–@$%&*#^+~÷\\/|<=>[\](){}]+#?)/.source,
+      (global) ? 'gi' : 'i')
   }
 
 }

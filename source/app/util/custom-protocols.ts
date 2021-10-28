@@ -2,7 +2,7 @@
  * @ignore
  * BEGIN HEADER
  *
- * CVM-Role:        Helper function
+ * CVM-Role:        Utility function
  * Maintainer:      Hendrik Erz
  * License:         GNU GPL v3
  *
@@ -23,14 +23,14 @@ export default function registerCustomProtocols (): void {
   protocol.registerFileProtocol(protocolName, (request, callback) => {
     const url = request.url.replace(`${protocolName}://`, '')
     try {
-      // eslint-disable-next-line standard/no-callback-literal
+      // eslint-disable-next-line node/no-callback-literal
       return callback({
         path: decodeURIComponent(url),
         // Prevent that local files are cached
         headers: { 'Cache-control': 'no-store', 'pragma': 'no-cache' }
       })
-    } catch (error) {
-      global.log.error(`Error loading external file: ${error.message as string}`, error)
+    } catch (err: any) {
+      global.log.error(`Error loading external file: ${err.message as string}`, err)
     }
   })
 }

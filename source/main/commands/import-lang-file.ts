@@ -16,7 +16,7 @@ import ZettlrCommand from './zettlr-command'
 import path from 'path'
 import fs from 'fs'
 import * as bcp47 from 'bcp-47'
-import { trans } from '../../common/i18n'
+import { trans } from '../../common/i18n-main'
 import { app } from 'electron'
 
 export default class ImportLangFile extends ZettlrCommand {
@@ -44,20 +44,20 @@ export default class ImportLangFile extends ZettlrCommand {
     // First test if the lang directory already exists
     try {
       fs.lstatSync(langDir)
-    } catch (e) {
+    } catch (err) {
       // Create
       fs.mkdirSync(langDir)
     }
 
     for (let f of files) {
       // Let's see if the filename resembles a bcp47 language tag
-      let schema: Schema = bcp47.parse(path.basename(f, path.extname(f)))
+      let schema = bcp47.parse(path.basename(f, path.extname(f)))
       if (schema.language !== undefined) {
         // It's a language file!
         try {
           fs.copyFileSync(f, path.join(langDir, path.basename(f)))
           global.notify.normal(trans('system.lang_import_success', path.basename(f)))
-        } catch (e) {
+        } catch (err) {
           global.notify.normal(trans('system.lang_import_error', path.basename(f)))
         }
       } else {

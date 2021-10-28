@@ -12,7 +12,7 @@
 })(function (CodeMirror) {
   'use strict'
 
-  var headRE = /^(\s{8})*(@[A-Za-z0-9]+)( .+)$/g
+  var headRE = /^((\s{4})*)(@[A-Za-z0-9]+)( .+)$/g
 
   CodeMirror.commands.markdownRenderAtTags = function (cm) {
     let match
@@ -48,6 +48,7 @@
       let atTag = document.createElement('span')
       const indent = match[0].split(match[match.length - 2])[0]
       atTag.className = 'at-tag'
+      console.log(match, match[match.length - 2], indent.slice(match[match.length - 2].length))
       atTag.textContent = match[match.length - 2] + indent.slice(match[match.length - 2].length + Math.ceil(indent.slice(match[match.length - 2].length).length / 8)).split('').map(x => ' ').join('')
       if (atTag.textContent.trim() === '@me') {
         atTag.className += ' me-tag'
@@ -78,7 +79,7 @@
     }
   }
 
-  var headRE2 = /^(\s{4})*(\*)( .+)$/g
+  var headRE2 = /^((\s{4})*)(\*)( .+)$/g
 
   CodeMirror.commands.markdownRenderListTags = function (cm) {
     let match
@@ -133,7 +134,7 @@
     }
   }
 
-  var headRE3 = /^(\s{4})*([>$~])( .+)$/g
+  var headRE3 = /^((\s{4})*)([>$~])( .+)$/g
 
   CodeMirror.commands.markdownRenderListSubtags = function (cm) {
     let match

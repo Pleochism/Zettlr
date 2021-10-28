@@ -1,7 +1,10 @@
 // In this file we're going to set up theme-specific variables.
 
 :root {
+  // Used in various places for highlighting purposes
   --c-primary: var(--green-0);
+  --c-primary-contrast: white;
+
   --c-primary-shade: var(--green-1);
 
   --c-secondary: var(--blue-0);
@@ -50,15 +53,6 @@
 // Vars that are used in internal LESS functions
 @c-primary: @green-0;
 @c-primary-shade: @green-1;
-
-
-/**
- * FONTS
- */
-@font-main: @font-lato;
-@font-secondary: @font-lato;
-@font-code: @font-liberation;
-@font-main-win: @font-sans-win;
 
 // TRANSITION DURING NIGHT/DAY-MODE THEME SWITCHES
 @mode-transition: 0.2s;

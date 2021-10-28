@@ -1,3 +1,5 @@
+const path = require('path')
+
 module.exports = [
   // Add support for native node modules
   {
@@ -8,7 +10,7 @@ module.exports = [
     test: /\.(m?js|node)$/,
     parser: { amd: false },
     use: {
-      loader: '@zeit/webpack-asset-relocator-loader',
+      loader: '@vercel/webpack-asset-relocator-loader',
       options: {
         outputAssetBase: 'native_modules'
       }
@@ -21,73 +23,47 @@ module.exports = [
   {
     test: /\.css$/,
     use: [
-      'vue-style-loader',
+      'style-loader',
       '@teamsupercell/typings-for-css-modules-loader',
       'css-loader'
     ]
   },
   {
-    // Handle picture files: just copy them
-    test: /\.(png|svg|jpg|gif)$/,
-    use: {
-      loader: 'file-loader',
-      options: {
-        // Do not wrap in js module (important for handlebars)
-        esModule: false,
-        name: "[path][name].[ext]",
-        // Forge puts the entry points in their own dedicated directory, so we
-        // have to "manually" move up from that directory again
-        publicPath: "..",
-        // The main context is our source directory. The resources are only
-        // important for handlebars, but not for anything else.
-        context: "source"
-      }
-    }
+    test: /\.(png|jpg|svg|gif)$/,
+    type: 'asset/resource',
+    exclude: [
+      // Clarity expects inline SVG, so we cannot handle them as resources.
+      path.resolve(__dirname, 'source/common/modules/window-register/icons')
+    ]
   },
   {
-    // Handle font files: just copy them
+    test: /\.svg$/,
+    use: ['svg-inline-loader'],
+    include: [
+      // Make sure to only inline the icons for Clarity. Other SVGs will be
+      // handled regularly as resources.
+      path.resolve(__dirname, 'source/common/modules/window-register/icons')
+    ]
+  },
+  {
     test: /\.(woff|woff2|eot|ttf|otf)$/,
-    use: {
-      loader: 'file-loader',
-      options: {
-        // Do not wrap in js module
-        esModule: false,
-        name: "[path][name].[ext]",
-        // Forge puts the entry points in their own dedicated directory, so we
-        // have to "manually" move up from that directory again
-        publicPath: "..",
-        // The main context is our source directory. The resources are only
-        // important for handlebars, but not for anything else.
-        context: "source"
-      }
-    }
+    type: 'asset/resource'
   },
   {
     // Handle audio files: just copy them
-    test: /\.(ogg)$/,
+    test: /\.(ogg|mp3|wav)$/,
     use: {
       loader: 'file-loader',
       options: {
         // Do not wrap in js module
         esModule: false,
-        name: "[path][name].[ext]",
+        name: '[path][name].[ext]',
         // Forge puts the entry points in their own dedicated directory, so we
         // have to "manually" move up from that directory again
-        publicPath: "..",
+        publicPath: '..',
         // The main context is our source directory. The resources are only
         // important for handlebars, but not for anything else.
-        context: "source"
-      }
-    }
-  },
-  {
-    // Handle files for citeproc: copy them, and import them as string
-    test: /\.(xml|csl)$/,
-    use: {
-      loader: 'raw-loader',
-      options: {
-        // Do not wrap in js module
-        esModule: false
+        context: 'source'
       }
     }
   },

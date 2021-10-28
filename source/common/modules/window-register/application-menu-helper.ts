@@ -1,7 +1,34 @@
-import { ipcRenderer } from 'electron'
+/**
+ * @ignore
+ * BEGIN HEADER
+ *
+ * Contains:        Application Menu helper
+ * CVM-Role:        Controller
+ * Maintainer:      Hendrik Erz
+ * License:         GNU GPL v3
+ *
+ * Description:     This file controls two types of menus: The menu bar which is
+ *                  shown on non-macOS platforms and the context menus. On macOS
+ *                  this file will not show a custom context menu but rather
+ *                  forward the menu template to the main process to render a
+ *                  native context menu.
+ *
+ * END HEADER
+ */
+
+const ipcRenderer = (window as any).ipc as Electron.IpcRenderer
 
 // This function displays a custom styled popup menu at the given coordinates
-export default function showPopupMenu (position: Point|Rect, items: AnyMenuItem[], callback: Function): Function {
+export default function showPopupMenu (position: Point|Rect, items: AnyMenuItem[], callback: (clickedID: string) => void, cleanup = true): () => void {
+  // Before we do anything, we first must make sure any rogue old context menus
+  // are gone.
+  if (cleanup) { // NOTE: we need a flag because of submenus
+    const menus = document.querySelectorAll('.application-menu')
+    for (const menu of menus) {
+      menu.parentElement?.removeChild(menu)
+    }
+  }
+
   // Get the correct rect to use for submenu placement
   let targetRect: Rect = {
     top: 0,
@@ -18,12 +45,34 @@ export default function showPopupMenu (position: Point|Rect, items: AnyMenuItem[
     targetRect.left = (position as Point).x
   }
 
+  if (process.platform === 'darwin') {
+    // NOTE: On macOS, we don't want the custom styled menus, but rather we want
+    // the native context menus (since the custom styled menus are only
+    // necessary on those platforms where you have a menu bar we have to manage)
+    ipcRenderer.invoke('menu-provider', {
+      command: 'display-native-context-menu',
+      payload: {
+        menu: items,
+        x: targetRect.left,
+        y: targetRect.top
+      }
+    })
+      .then(clickedID => {
+        // If the user did click a menu item, notify the caller
+        if (clickedID !== undefined) {
+          callback(clickedID)
+        }
+      })
+      .catch(err => { console.error(err) })
+    return () => { /* Noop-function, since no cleanup is required */ }
+  } // END darwin specific code
+
   // We have just received a serialized submenu which we should now display
   const appMenu = document.createElement('div')
-  appMenu.setAttribute('id', 'application-menu')
-  appMenu.style.zIndex = '99999' // Ensure it always stays on top of anything, including modals
+  appMenu.classList.add('application-menu')
+  appMenu.style.zIndex = '99999' // Ensure it always stays on top of anything
 
-  for (let item of items) {
+  for (const item of items) {
     const menuItem = renderMenuItem(item)
 
     if (item.type !== 'submenu' && item.type !== 'separator' && item.enabled) {
@@ -59,7 +108,7 @@ export default function showPopupMenu (position: Point|Rect, items: AnyMenuItem[
             appMenu.parentElement?.removeChild(appMenu)
           }
 
-          closeSubmenu = showPopupMenu(target, (item as SubmenuItem).submenu, subCB)
+          closeSubmenu = showPopupMenu(target, item.submenu, subCB, false) // NOTE: Prevent cleanup ONLY here!
         } else if (
           pointInRect(point, menuRect) &&
           !pointInRect(point, rect) &&
@@ -86,7 +135,6 @@ export default function showPopupMenu (position: Point|Rect, items: AnyMenuItem[
     })
 
     menuItem.addEventListener('mousedown', (event) => {
-      console.log('Inspecting!')
       ipcRenderer.send('window-controls', {
         command: 'inspect-element',
         payload: {
