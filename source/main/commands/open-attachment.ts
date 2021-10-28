@@ -17,7 +17,7 @@
  */
 
 import ZettlrCommand from './zettlr-command'
-import { trans } from '../../common/i18n'
+import { trans } from '../../common/i18n-main'
 import got from 'got'
 import { shell } from 'electron'
 import pdfSorter from '../../common/util/sort-by-pdf'
@@ -76,7 +76,7 @@ export default class OpenAttachment extends ZettlrCommand {
       let potentialError = await shell.openPath(allAttachments[0])
       if (potentialError !== '') throw new Error(potentialError)
       return true
-    } catch (err) {
+    } catch (err: any) {
       if (appearsToHaveNoAttachments) {
         // Better error message
         let msg = trans('system.error.citation_no_attachments', arg.citekey)

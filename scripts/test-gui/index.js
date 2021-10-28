@@ -19,10 +19,9 @@ const copyFolder = require('./copy-folder')
 
 const log = require('../console-colour')
 
-const hash = require('../../source/common/util/hash')
-
 const TEST_DIRECTORY = path.join(__dirname, '../../resources/test')
-const CONFIG_FILE = path.join(__dirname, '../../resources/test-config.json')
+const CONF_DIRECTORY = path.join(__dirname, '../../resources/test-cfg')
+const CONFIG_FILE = path.join(__dirname, '../../resources/test-cfg/config.json')
 
 // Test if we should nuke the old test environment, or simply start
 // with the old one (useful for testing persistence of settings)
@@ -60,29 +59,37 @@ async function prepareEnvironment () {
     log.verbose('No old testing directory found.')
   }
 
-  // Second, remove the configuration file
+  // Second, same but for the data directory
   try {
-    await fs.lstat(CONFIG_FILE)
-    await fs.unlink(CONFIG_FILE)
-    log.success('Removed old config file.')
+    await fs.lstat(CONF_DIRECTORY)
+    await new Promise((resolve, reject) => {
+      rimraf(CONF_DIRECTORY, (err) => {
+        if (err) reject(err)
+        resolve()
+      })
+    })
+    log.success('Removed the old data directory.')
   } catch (e) {
     // Nothing to do
-    log.verbose('No old configuration file found.')
+    log.verbose('No data directory found.')
   }
 
   // Fill in the file structure
   log.info('Copying over testing directory into the resources folder ...')
-  let roots = await copyFolder(TEST_DIRECTORY)
+  const roots = await copyFolder(TEST_DIRECTORY)
   log.success('Done copying the testing files!')
+  await fs.mkdir(CONF_DIRECTORY, { recursive: true })
+  log.success('Created app data directory!')
 
-  let readmeFile = roots.find(root => path.basename(root) === 'README.md')
+  const readmeFile = roots.find(root => path.basename(root) === 'README.md')
 
   // Now it's time to create the new config file
   log.info('Creating new configuration file from test-config.yml ...')
   let cfg = await makeConfig()
   cfg.openPaths = roots
   // Set the README.md file as open
-  cfg.openFiles = [ hash(readmeFile) ]
+  cfg.openFiles = [ readmeFile ]
+  cfg.activeFile = readmeFile
 
   // We also want the dialogs to start at the test directory for easier navigation
   cfg.dialogPaths = {
@@ -103,12 +110,19 @@ function startApp(argv = []) {
     log.warn('Supplying additional arguments to process: [' + argv.join(', ') + ']')
   }
 
-  let proc = spawn('electron-forge', [ 'start', '--', `--config="${CONFIG_FILE}"`, ...argv ], {
-    // Use the root directory as working dir
-    'cwd': path.join(__dirname, '../../'),
-    // Directly pipe stdio from the child process to the main process
-    'stdio': [ process.stdin, process.stdout, process.stderr ]
-  })
+  // Make sure the correct command is run
+  const command = (process.platform === 'win32') ? '.\\node_modules\\.bin\\electron-forge.cmd' : 'electron-forge'
+  // Arguments for electron-forge
+  const forgeArgs = ['start', '--', `--data-dir="${CONF_DIRECTORY}"`, ...argv ]
+  // Spawn's options: Use the root as CWD and pipe the process's stdio to the parent process.
+  const spawnOptions = {
+    cwd: path.join(__dirname, '../../'),
+    stdio: [ process.stdin, process.stdout, process.stderr ]
+  }
+
+  // Finally spawn the process
+  const proc = spawn(command, forgeArgs, spawnOptions)
+
   proc.on('close', (code) => {
     log.info(`Child process exited with code ${code}`)
   })
