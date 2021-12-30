@@ -1,3 +1,158 @@
+# 2.1.0
+
+## GUI and Functionality
+
+- **New Feature**: Implemented "forward" and "back" actions, which are
+  especially useful for people managing a Zettelkasten and frequently follow
+  links: Now you can go back and forth between opened files (shortcuts:
+  `Cmd/Ctrl+[` and `Cmd/Ctrl+]`) so you can more quickly navigate your files
+- Fixed an error in the link filtering process that would throw an error when
+  you attempted to remove internal links completely upon export
+- Fixed `Cmd/Ctrl-Click`-behavior on footnotes
+- Dragging and dropping files (both from the desktop and the sidebar) now always
+  inserts relative paths
+- More reactive updating of the related files section
+- Improvements during insertion of snippets
+- The footnote editor now has a consistent background color in dark mode
+- You can now open linked files from within the preview tooltips
+- Removed the shortcut to rename directories since that was rarely used and
+  could confuse users since it was not obvious where the directory is in the
+  file manager
+- Moved the file renaming process via shortcut to the document tabs since it's
+  much more visible there
+- Fix a very rare bug in which selections inside headings would look off
+- Fixed an error that would fail the print preview if you had images with
+  relative paths in your document
+- Internal links to files that contain a period should work now (except what
+  follows exactly matches an allowed Markdown file extension)
+- Scrollbars on Windows and Linux should now switch colors according to the
+  app's dark mode setting
+- Zettlr doesn't detect links to other headings in the form of `[link](#target)`
+  as tags anymore
+- Reinstated the ability to use pure number tags or hexadecimal numbers as tags
+- Using the shortcut `Ctrl-Shift-V` to paste something as plain text will no
+  longer paste it twice on Windows and Linux
+- Zettlr can now be started minimized (in the tray/notification area) by passing
+  the CLI flag `--launch-minimized`, which means the main window will not be
+  shown after launching the app
+- On single-file export, unsaved changes are now also exported
+- MagicQuotes can now surround selections
+- File duplication will now make sure to always create new files instead of
+  overwriting existing ones
+- Attempt to scroll back to the correct position after applying remote changes
+- Adapt styles on Windows
+- You can now specify a TeX template and an HTML template for projects
+- Fix double titlebars on Windows and Linux when displaying modals
+- Following internal links now also works for systems in which the ID is part of
+  the file name
+- Updated the display name in the Add/Remove Programs entry for Windows
+- Task list items in the editor are now correctly spaced again
+- Fixed a bug that would render it impossible to open images and files with non-
+  ASCII characters within their path
+
+## Under the Hood
+
+- Added a further check to the filter copying. Since the filters that ship with
+  Zettlr are bound to the inner workings of the app, we should always overwrite
+  them if applicable (to ensure they are updated with the app), unlike the
+  defaults which people should be able to modify without us messing with them
+- Sanitized and standardized all Vue component names and app entry points
+- Fix a whole bunch of linter warnings
+- Remove the custom event system (`$on`, `$off`, and `$once`) in preparation for
+  Vue 3
+- Switched to Vue 3 (incl. Vuex 4, vue-loader 16, vue-virtual-scroller 2)
+- The state is now being instantiated using a function which adds reactivity
+- The modified documents are now updated in such a way that attached watchers
+  are notified
+- The snippet insertion process is now much more precise and allows snippets to
+  be inserted at any point within non-empty lines without any quirks
+- Update Pandoc to 2.16.2
+- The VS Code debugger now uses the `test-gui` configuration and not the regular
+  (potentially critical) main configuration; NOTE that this means you must run
+  the `test-gui` command first to generate that data-dir in the first place
+  before starting the debugger
+- Cleaned up the handler for rendering task-list items
+- Switched the windows update, tag-manager, stats, quicklook, project-properties,
+  print, paste-image, log-viewer, error, assets, preferences, and about to
+  TypeScript
+- `extractYamlFrontmatter` does not require the linefeed anymore
+- Remove the `openFile` method from the main Zettlr object. Use
+  `getDocumentManager().openFile` instead to open a file
+- Add an automatic updater for `CITATION.cff`
+- Zettlr now extracts outlinks from a file and adds them to descriptors
+- Added `@common` as a shorthand alias for importing files within the `common`-
+  directory
+- The file autocompletion database now uses the full paths to index files
+- You can now copy the underlying equation code for LaTeX equations
+
+# 2.0.3
+
+## GUI and Functionality
+
+- **Default changed**: The exporter's HTML defaults have now `self-contained: true`
+  instead of previously `self-contained: false` -- make sure to update your
+  settings accordingly!
+- The editor dropdown list now won't be wider than the window, even if you have
+  very long citations or keywords
+- Removed the leading `#` in the tag cloud
+- Allow tags to be sorted by name or count
+- Re-introduce the project properties window, since the place within the popover
+  was very limited and people have begun calling for more features, so we need
+  the space of a dedicated window
+- Image caption changes are now also saved when the text field loses focus
+- Reworded "night mode" to "dark mode" consistently
+- Fix a minor design glitch
+- Removed the previous HTML template; now Zettlr uses Pandoc's default
+- Fix a small visual glitch that would show link tooltips in unexpected
+  locations
+- Fixed a small bug that would make Zettlr treat numbers at the beginning of a
+  line as a list too often. Now typing, e.g., "21.12.2021" will not yield a
+  "22." on the next line
+- Changing heading levels using the context menu on heading markers will no
+  longer insert the new heading level at arbitrary positions in the document
+- Fixed the accessibility to screen readers of toolbar search controls
+
+## Under the Hood
+
+- Update Pandoc to 2.16.1
+- Improve sorting behavior of directories on creation and renaming of files
+- Removed custom middle-click paste code for Linux, cf. #2321
+- Fixed a floating-point to integer conversion failure error
+- Fix potential errors in the updater window with additional sanity checks
+- Project properties are now persisted to disk only if they actually changed
+
+# 2.0.2
+
+## GUI and Functionality
+
+- Linking files by dragging them onto the editor from the file manager works
+  again.
+- Text input is automatically focused on global search (`Ctrl+Shift+F`).
+- Previously, when you saved an in-memory file to disk, the dialog would begin
+  in some random directory, but never the currently selected directory. This is
+  now fixed.
+- Added syntax highlighting for Octave (Matlab), keyword: `octave`
+- The sidebar now refreshes also whenever it is shown, preventing wrong messages
+  such as "No citations in document" when a document with citations is open.
+- Modal windows now have a title bar
+- Slightly increased the status bar height
+- Fixed the image size calculator during image pastes
+- Fixed a bug that sometimes caused the editor to randomly jump when entering a
+  newline
+- The updater has received a face lift: It should now be more responsive and
+  easier to handle. We now filter out files which wouldn't work on the given
+  platform either way, making it harder to accidentally download the Intel-
+  packages when you're on ARM (or vice versa).
+
+## Under the Hood
+
+- Switched the Linux middle-mouse-paste code to listen to mouseup events instead
+  of mousedown events in response to issue #2321
+- Update Pandoc to 2.15
+- Refactor the `UpdateProvider` so that it now has a unified state and a better
+  error reporting. It should work much better without unrecoverable states and
+  is more responsive. Additionally, removed a lot of old and dead code from it.
+
 # 2.0.1
 
 No stable release works without bugs, and thanks to our community, we found them

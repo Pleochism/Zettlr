@@ -18,7 +18,8 @@
       v-bind:data-id="obj.id"
       v-bind:data-filename="getFilename"
       v-bind:draggable="isDraggable"
-      v-on:mousedown.stop="requestSelection"
+      v-on:click.stop="requestSelection"
+      v-on:auxclick.stop="requestSelection"
       v-on:dragstart.stop="beginDragging"
       v-on:drag="onDragHandler"
       v-on:contextmenu="handleContextMenu"
@@ -135,10 +136,10 @@
  * END HEADER
  */
 
-import { trans } from '../../common/i18n-renderer'
-import formatDate from '../../common/util/format-date'
-import localiseNumber from '../../common/util/localise-number'
-import formatSize from '../../common/util/format-size'
+import { trans } from '@common/i18n-renderer'
+import formatDate from '@common/util/format-date'
+import localiseNumber from '@common/util/localise-number'
+import formatSize from '@common/util/format-size'
 import itemMixin from './util/item-mixin'
 
 export default {

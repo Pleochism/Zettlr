@@ -26,10 +26,9 @@ require('./editor.less')
  */
 
 const getCodeMirrorDefaultOptions = require('./get-cm-options')
-const safeAssign = require('../../util/safe-assign')
-const countWords = require('../../util/count-words').default
-const md2html = require('../../util/md-to-html')
-const html2md = require('../../util/html-to-md')
+const safeAssign = require('@common/util/safe-assign')
+const countWords = require('@common/util/count-words').default
+const md2html = require('@common/util/md-to-html')
 const generateKeymap = require('./generate-keymap.js')
 const generateTableOfContents = require('./util/generate-toc')
 
@@ -46,7 +45,6 @@ const {
 /**
  * APIs
  */
-// const { clipboard, ipcRenderer } = require('electron')
 const EventEmitter = require('events')
 
 const ipcRenderer = window.ipc
@@ -281,29 +279,6 @@ module.exports = class MarkdownEditor extends EventEmitter {
       }
     })
 
-    this._instance.getWrapperElement().addEventListener('mousedown', (event) => {
-      if (event.button !== 1 || process.platform !== 'linux' || clipboard.hasSelectionClipboard() === false) {
-        return
-      }
-
-      // The user has pressed middle mouse button on Linux. On Linux, there's
-      // the concept of some form of a "quick selection", that is: The user
-      // selects some text, and, without pressing Ctrl+C, the text is
-      // immediately present in the "selection" clipboard. A middle mouse button
-      // is assumed to paste that to wherever the focus currently sits. For
-      // more info, see issue #1882 and https://unix.stackexchange.com/a/139193
-      const { text, html } = clipboard.getSelectionClipboard()
-
-      if (html.trim() !== '') {
-        // We have HTML to paste
-        const toPaste = html2md(html)
-        this._instance.doc.replaceSelection(toPaste)
-      } else {
-        // There is text to paste
-        this._instance.doc.replaceSelection(text)
-      }
-    })
-
     // Listen to updates from the assets provider
     ipcRenderer.on('assets-provider', (event, which) => {
       if (which === 'snippets-updated') {
@@ -346,7 +321,7 @@ module.exports = class MarkdownEditor extends EventEmitter {
    * text present.
    */
   pasteAsPlainText () {
-    let plainText = clipboard.readText()
+    const plainText = clipboard.readText()
 
     // Simple programmatical paste.
     if (plainText.length > 0) {
@@ -475,6 +450,12 @@ module.exports = class MarkdownEditor extends EventEmitter {
   swapDoc (cmDoc, documentMode) {
     const oldDoc = this._instance.swapDoc(cmDoc)
     this._instance.focus()
+
+    // Rarely, the heading classes will confuse the CodeMirror instance so that
+    // selections will still be of the old line height's size, instead of the
+    // new, bigger one. Since window resizing apparently helps, we'll manually
+    // call said function here (after a timeout to give the hooks time to run)
+    setTimeout(() => { this._instance.refresh() }, 1000)
 
     this._currentDocumentMode = documentMode
 
@@ -766,7 +747,7 @@ module.exports = class MarkdownEditor extends EventEmitter {
   /**
    * Returns the underlying CodeMirror instance
    *
-   * @return  {CodeMirror}  The CodeMirror instance
+   * @return  {CodeMirror.Editor}  The CodeMirror instance
    */
   get codeMirror () {
     return this._instance

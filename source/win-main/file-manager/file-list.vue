@@ -88,12 +88,14 @@
  * END HEADER
  */
 
-import { trans } from '../../common/i18n-renderer'
+import { trans } from '@common/i18n-renderer'
 import tippy from 'tippy.js'
 import FileItem from './file-item'
 import { RecycleScroller } from 'vue-virtual-scroller'
-import objectToArray from '../../common/util/object-to-array'
+import objectToArray from '@common/util/object-to-array'
 import matchQuery from './util/match-query'
+
+import { nextTick } from 'vue'
 
 const ipcRenderer = window.ipc
 
@@ -197,9 +199,9 @@ export default {
       this.scrollIntoView()
     },
     getDirectoryContents: function () {
-      this.$nextTick(function () {
-        this.scrollIntoView()
-      })
+      nextTick()
+        .then(() => { this.scrollIntoView() })
+        .catch(err => console.error(err))
     }
   },
   mounted: function () {
@@ -209,9 +211,9 @@ export default {
    * has finished (such as tippy).
    */
   updated: function () {
-    this.$nextTick(function () {
-      this.updateDynamics()
-    })
+    nextTick()
+      .then(() => { this.updateDynamics() })
+      .catch(err => console.error(err))
   },
   methods: {
     /**

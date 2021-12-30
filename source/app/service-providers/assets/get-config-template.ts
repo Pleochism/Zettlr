@@ -15,7 +15,7 @@
 import { app } from 'electron'
 import * as bcp47 from 'bcp-47'
 import { v4 as uuid4 } from 'uuid'
-import getLanguageFile from '../../../common/util/get-language-file'
+import getLanguageFile from '@common/util/get-language-file'
 
 const ZETTLR_VERSION = app.getVersion()
 const ATTACHMENT_EXTENSIONS = [
@@ -74,6 +74,7 @@ export default function getConfigTemplate (): ConfigOptions {
     fileMetaTime: 'modtime', // The time to be displayed in file meta
     hideDirs: true, // Should the app hide directories during global search?
     sorting: 'natural', // Can be natural or based on ASCII values
+    sortFoldersFirst: false, // should folders be shown first in combined fileview
     sortingTime: 'modtime', // can be modtime or creationtime
     muteLines: true, // Should the editor mute lines in distraction free mode?
     fileManagerMode: 'thin', // thin = Preview or directories visible --- expanded = both visible --- combined = tree view displays also files

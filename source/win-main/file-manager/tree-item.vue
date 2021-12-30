@@ -7,7 +7,7 @@
       v-bind:class="{
         'tree-item': true,
         [obj.type]: true,
-        'selected': (selectedFile !== null && selectedFile.path === obj.path) || (selectedDir !== null && selectedDir.path === obj.path),
+        'selected': isSelected,
         'project': obj.project != null,
         'root': isRoot
       }"
@@ -16,7 +16,8 @@
       v-bind:style="{
         'padding-left': `${depth * 15 + 10}px`
       }"
-      v-on:mousedown.stop="requestSelection"
+      v-on:click.stop="requestSelection"
+      v-on:auxclick.stop="requestSelection"
       v-on:dragover="acceptDrags"
       v-on:dragenter="enterDragging"
       v-on:dragleave="leaveDragging"
@@ -48,7 +49,7 @@
           v-bind:class="{
             'is-solid': [ 'disconnect', 'blocks-group' ].includes(primaryIcon)
           }"
-          v-on:mousedown.stop="handlePrimaryIconClick"
+          v-on:click.stop="handlePrimaryIconClick"
         ></clr-icon>
       </span>
       <span
@@ -126,8 +127,10 @@
  */
 
 import itemMixin from './util/item-mixin'
-import generateFilename from '../../common/util/generate-filename'
-import { trans } from '../../common/i18n-renderer'
+import generateFilename from '@common/util/generate-filename'
+import { trans } from '@common/i18n-renderer'
+
+import { nextTick } from 'vue'
 
 const path = window.path
 const ipcRenderer = window.ipc
@@ -265,6 +268,19 @@ export default {
       } else {
         return this.obj.name.replace(this.obj.ext, '')
       }
+    },
+    isSelected: function () {
+      if (this.obj.type === 'directory') {
+        if (this.selectedDir === null) {
+          return false
+        }
+        return this.selectedDir.path === this.obj.path
+      } else {
+        if (this.selectedFile === null) {
+          return false
+        }
+        return this.selectedFile.path === this.obj.path
+      }
     }
   },
   watch: {
@@ -272,11 +288,11 @@ export default {
       this.uncollapseIfApplicable()
     },
     selectedDir: function (newVal, oldVal) {
-      this.uncollapseIfApplicable()
+      // this.uncollapseIfApplicable() TODO: As of now this would also uncollapse the containing file's directory
     },
     operationType: function (newVal, oldVal) {
       if (newVal !== undefined) {
-        this.$nextTick(() => {
+        nextTick().then(() => {
           if (this.operationType === 'createFile') {
             // If we're generating a file, generate a filename
             this.$refs['new-object-input'].value = generateFilename()
@@ -291,6 +307,7 @@ export default {
             this.$refs['new-object-input'].value.lastIndexOf('.')
           )
         })
+          .catch(err => console.error(err))
       }
     }
   },
@@ -305,10 +322,13 @@ export default {
       // Open the tree, if the selected file is contained in this dir somewhere
       if (filePath.startsWith(this.obj.path)) {
         this.collapsed = false
+      } else {
+        // we are not in the filepath of the currently open note, do not change the state!
+        return
       }
 
       // If a directory within this has been selected, open up, lads!
-      if (dirPath.startsWith(this.obj.path)) {
+      if (this.obj.path.startsWith(dirPath)) {
         this.collapsed = false
       }
     },

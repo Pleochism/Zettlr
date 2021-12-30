@@ -12,11 +12,11 @@
   * END HEADER
   */
 
-import { getBlockMathRE, getInlineMathRenderRE } from '../../../../common/regular-expressions'
-import * as CodeMirror from 'codemirror'
+import { getBlockMathRE, getInlineMathRenderRE } from '@common/regular-expressions'
+import CodeMirror from 'codemirror'
 import katex from 'katex'
 
-import 'katex/dist/contrib/mhchem' // modify katex module
+import 'katex/contrib/mhchem' // modify katex module
 
 const multilineMathRE = getBlockMathRE()
 const commands = (CodeMirror.commands as any)
@@ -61,6 +61,7 @@ commands.markdownRenderMath = function (cm: CodeMirror.Editor) {
 
     let mathSpan = document.createElement('span')
     mathSpan.classList.add('preview-math')
+    mathSpan.dataset.equation = myMarker.eq // Save the equation so it can be copied
 
     let textMarker = cm.getDoc().markText(
       myMarker.curFrom, myMarker.curTo,

@@ -114,13 +114,13 @@
  * END HEADER
  */
 
-import objectToArray from '../common/util/object-to-array'
-import compileSearchTerms from '../common/util/compile-search-terms'
-import TextControl from '../common/vue/form/elements/Text'
-import ButtonControl from '../common/vue/form/elements/Button'
-import ProgressControl from '../common/vue/form/elements/Progress'
-import AutocompleteText from '../common/vue/form/elements/AutocompleteText'
-import { trans } from '../common/i18n-renderer'
+import objectToArray from '@common/util/object-to-array'
+import compileSearchTerms from '@common/util/compile-search-terms'
+import TextControl from '@common/vue/form/elements/Text'
+import ButtonControl from '@common/vue/form/elements/Button'
+import ProgressControl from '@common/vue/form/elements/Progress'
+import AutocompleteText from '@common/vue/form/elements/AutocompleteText'
+import { trans } from '@common/i18n-renderer'
 
 const ipcRenderer = window.ipc
 const path = window.path
@@ -133,6 +133,7 @@ export default {
     ButtonControl,
     AutocompleteText
   },
+  emits: ['jtl'],
   data: function () {
     return {
       // The current search
@@ -406,6 +407,7 @@ export default {
     },
     singleSearchRun: async function () {
       // Take the file to be searched ...
+      const terms = compileSearchTerms(this.query)
       while (this.filesToSearch.length > 0) {
         const fileToSearch = this.filesToSearch.shift()
         // Now start the search
@@ -413,7 +415,7 @@ export default {
           command: 'file-search',
           payload: {
             path: fileToSearch.path,
-            terms: this.compiledTerms
+            terms: terms
           }
         })
         if (result.length > 0) {
@@ -478,14 +480,12 @@ export default {
       this.jumpToLine(filePath, lineNumber, isMiddleClick)
     },
     jumpToLine: function (filePath, lineNumber, openInNewTab = false) {
-      const isFileOpen = this.openFiles.find(file => file.path === filePath)
       const isActiveFile = (this.activeFile !== null) ? this.activeFile.path === filePath : false
 
       if (isActiveFile) {
         this.$emit('jtl', lineNumber)
-      } else if (isFileOpen === undefined) {
-        // The wanted file is not yet open --> open it and afterwards issue the
-        // jtl-command
+      } else {
+        // The wanted file is not yet active -> Do so and then jump to the correct line
         ipcRenderer.invoke('application', {
           command: 'open-file',
           payload: {
@@ -494,18 +494,12 @@ export default {
           }
         })
           .then(() => {
-            // As soon as the file becomes active, jump to that line
-            this.jtlIntent = lineNumber
-          })
-          .catch(e => console.error(e))
-      } else {
-        ipcRenderer.invoke('application', {
-          command: 'set-active-file',
-          payload: filePath
-        })
-          .then(() => {
-            // As soon as the file becomes active, jump to that line
-            this.jtlIntent = lineNumber
+            // As soon as the file becomes active, jump to that line. But only
+            // if it's >= 0. If lineNumber === -1 it means just the file should
+            // be open.
+            if (lineNumber >= 0) {
+              this.jtlIntent = lineNumber
+            }
           })
           .catch(e => console.error(e))
       }
@@ -542,6 +536,9 @@ export default {
       }
 
       return marked
+    },
+    focusQueryInput: function () {
+      this.$refs['query-input'].focus()
     }
   }
 }

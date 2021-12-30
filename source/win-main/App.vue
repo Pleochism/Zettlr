@@ -42,15 +42,15 @@
             <DocumentTabs
               v-show="!distractionFree"
             ></DocumentTabs>
-            <Editor
+            <MainEditor
               ref="editor"
               v-bind:readability-mode="readabilityActive"
               v-bind:distraction-free="distractionFree"
-            ></Editor>
+            ></MainEditor>
           </template>
           <template #view2>
             <!-- Second side: Sidebar -->
-            <Sidebar></Sidebar>
+            <MainSidebar></MainSidebar>
           </template>
         </SplitView>
       </template>
@@ -73,22 +73,23 @@
  * END HEADER
  */
 
-import WindowChrome from '../common/vue/window/Chrome'
+import WindowChrome from '@common/vue/window/Chrome'
 import FileManager from './file-manager/file-manager'
-import Sidebar from './Sidebar'
+import MainSidebar from './MainSidebar'
 import DocumentTabs from './DocumentTabs'
 import SplitView from '../common/vue/window/SplitView'
 import GlobalSearch from './GlobalSearch'
-import Editor from './Editor'
+import MainEditor from './MainEditor'
 import PopoverExport from './PopoverExport'
 import PopoverStats from './PopoverStats'
 import PopoverTags from './PopoverTags'
 import PopoverPomodoro from './PopoverPomodoro'
 import PopoverTable from './PopoverTable'
 import PopoverDocInfo from './PopoverDocInfo'
-import { trans } from '../common/i18n-renderer'
-import localiseNumber from '../common/util/localise-number'
-import generateId from '../common/util/generate-id'
+import { trans } from '@common/i18n-renderer'
+import localiseNumber from '@common/util/localise-number'
+import generateId from '@common/util/generate-id'
+import { nextTick } from 'vue'
 
 // Import the sound effects for the pomodoro timer
 import glassFile from './assets/glass.wav'
@@ -114,15 +115,14 @@ const SOUND_EFFECTS = [
 ]
 
 export default {
-  name: 'Main',
   components: {
     WindowChrome,
     FileManager,
     DocumentTabs,
     SplitView,
-    Editor,
+    MainEditor,
     GlobalSearch,
-    Sidebar
+    MainSidebar
   },
   data: function () {
     return {
@@ -400,6 +400,12 @@ export default {
       } else if (shortcut === 'global-search') {
         this.fileManagerVisible = true
         this.mainSplitViewVisibleComponent = 'globalSearch'
+        // Focus input
+        if (this.$refs['global-search'] !== undefined) {
+          nextTick()
+            .then(() => { this.$refs['global-search'].focusQueryInput() })
+            .catch(err => console.error(err))
+        }
       } else if (shortcut === 'toggle-file-manager') {
         if (this.fileManagerVisible === true && this.mainSplitViewVisibleComponent === 'fileManager') {
           this.fileManagerVisible = false
@@ -439,23 +445,26 @@ export default {
     // Initially, we need to hide the sidebar, since the view will be visible
     // by default.
     this.$refs['editor-sidebar-split'].hideView(2)
-
-    this.$on('start-global-search', (terms) => {
+  },
+  methods: {
+    jtl: function (lineNumber) {
+      this.$refs.editor.jtl(lineNumber)
+    },
+    startGlobalSearch: function (terms) {
       this.mainSplitViewVisibleComponent = 'globalSearch'
       this.fileManagerVisible = true
-      this.$nextTick(() => {
-        this.$refs['global-search'].$data.query = terms
-        this.$refs['global-search'].startSearch()
-      })
-    })
-
-    this.$on('toggle-file-list', () => {
+      nextTick()
+        .then(() => {
+          this.$refs['global-search'].$data.query = terms
+          this.$refs['global-search'].startSearch()
+        })
+        .catch(err => console.error(err))
+    },
+    toggleFileList: function () {
       // This event can be used by various components to ask the file manager to
       // toggle its file list visibility
       this.$refs['file-manager'].toggleFileList()
-    })
-  },
-  methods: {
+    },
     handleClick: function (clickedID) {
       if (clickedID === 'open-workspace') {
         ipcRenderer.invoke('application', { command: 'open-workspace' })
@@ -499,7 +508,7 @@ export default {
         this.$togglePopover(PopoverTags, button, data, (data) => {
           if (data.searchForTag !== '') {
             // The user has clicked a tag and wants to search for it
-            this.$emit('start-global-search', '#' + data.searchForTag)
+            this.startGlobalSearch('#' + data.searchForTag)
             this.$closePopover()
           } else if (data.addSuggestionsToFile === true) {
             this.$refs.editor.addKeywordsToFile(data.suggestions)
@@ -687,16 +696,29 @@ export default {
       }
       this.$togglePopover(PopoverExport, document.getElementById('toolbar-export'), data, (data) => {
         if (data.shouldExport === true) {
+          // Remember to de-proxy any non-primitive data types so that they can
+          // be sent over the IPC pipe
+          const options = {}
+          for (const key in data.formatOptions) {
+            options[key] = data.formatOptions[key]
+          }
           // Remember the last choice
           global.config.set('export.singleFileLastExporter', data.format)
+          // If the file is modified, export the current contents of the editor
+          // rather than what is saved on disk
+          let content
+          if (this.$store.state.modifiedDocuments.includes(this.$store.state.activeFile.path) === true) {
+            content = this.$refs.editor.getValue()
+          }
           // Run the exporter
           ipcRenderer.invoke('application', {
             command: 'export',
             payload: {
               format: data.format,
-              options: data.formatOptions,
+              options: options,
               exportTo: data.exportTo,
-              file: this.$store.state.activeFile.path
+              file: this.$store.state.activeFile.path,
+              content: content
             }
           })
             .catch(e => console.error(e))
