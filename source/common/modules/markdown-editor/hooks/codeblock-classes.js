@@ -77,7 +77,7 @@ function findCode (cm) {
     }
 
     // Possible match for indented code found
-    if (indentedRE.test(line)) {
+    /*if (indentedRE.test(line)) {
       let prevLine = lineNum - 1
 
       // Verify match
@@ -100,7 +100,7 @@ function findCode (cm) {
           }
         }
       }
-    }
+    }*/
 
     // Finally, after skipping all the code, remove leftover classes
     cm.removeLineClass(lineNum, 'wrap', codeblockClass, codeblockClassOpen, codeblockClassClose)

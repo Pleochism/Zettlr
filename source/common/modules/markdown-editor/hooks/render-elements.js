@@ -52,4 +52,11 @@ function renderElements (cm) {
   if (render.tasks === true) cm.execCommand('markdownRenderTasks')
   if (render.headingTags === true) cm.execCommand('markdownRenderHTags')
   if (render.wysiwyg === true) cm.execCommand('markdownWYSIWYG')
+
+  cm.execCommand('markdownRenderAtTags')
+  cm.execCommand('markdownRenderListTags')
+  cm.execCommand('markdownRenderListEndTags');
+  cm.execCommand('markdownRenderActions')
+  cm.execCommand('markdownRenderHrTags')
+  cm.execCommand('markdownRenderPlayerTags');
 }
