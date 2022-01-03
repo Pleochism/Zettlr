@@ -73,6 +73,8 @@ function maybeHideFormattingBar () {
  * @param   {CodeMirror}  cm  The CodeMirror instance
  */
 function showFormattingBar (cm) {
+  return
+
   const selection = cm.getWrapperElement().querySelector('.CodeMirror-selected')
 
   maybeHideFormattingBar()

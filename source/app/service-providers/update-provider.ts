@@ -68,6 +68,7 @@ export default class UpdateProvider {
        * @return  {boolean}  True, if the last update check retrieved a newer version
        */
       applicationUpdateAvailable: () => {
+        return false;
         return this._updateState.updateAvailable
       },
       /**
