@@ -65,7 +65,12 @@
       let nextLine = cm.getLine(end + 1)
       while (end < lastLineNo) {
         const newLevel = (nextLine.length - nextLine.trimStart().length) / 8;
-        if (nextLine.trim() != "" && newLevel <= level) break
+        if (nextLine.trim() !== '' && newLevel <= level) {
+          if (cm.getLine(end).trim() === '') {
+            end--
+          }
+          break
+        }
         ++end
         nextLine = cm.getLine(end + 1)
       }
@@ -78,22 +83,22 @@
 
     function collapseConditional() {
       let end = start.line
-      const level = (firstLine.length - firstLine.trimStart().length) / 8
+
+      let ifLevel = 1
 
       let nextLine = cm.getLine(end + 1)
-      let ifLevel = 1;
       while (end < lastLineNo) {
-        const newLevel = (nextLine.length - nextLine.trimStart().length) / 8;
-        if (nextLine.trimStart() === "$ else")
-          if (ifLevel === 1) break;
-        if (nextLine.trimStart().startsWith("$ elif"))
-          if (ifLevel === 1) break;
-        if (nextLine.trimStart() === "$ endif")
-          ifLevel--;
-        else if (nextLine.trimStart().startsWith("$ ") && nextLine.endsWith("?"))
-          ifLevel++;
+        if (nextLine.trimStart().startsWith('$ else')) {
+          if (ifLevel === 1) break
+        } else if (nextLine.trimStart().startsWith('$ elif')) {
+          if (ifLevel === 1) break
+        } else if (nextLine.trimStart().startsWith('$ endif')) {
+          if (--ifLevel === 0) break
+        } else if (nextLine.trimStart().startsWith('$ ') && nextLine.trimEnd().endsWith('?')) {
+          ifLevel++
+        }
 
-        if (nextLine.trim() != "" && newLevel === level && ifLevel === 0) break
+        if (ifLevel === 0) break
         ++end
         nextLine = cm.getLine(end + 1)
       }
@@ -107,7 +112,7 @@
     if (firstLine.trimStart().startsWith("* ") || firstLine.trimStart().startsWith("// "))
       return collapseBranch();
 
-    if ((firstLine.trimStart().startsWith("$ ") && firstLine.endsWith("?")) || firstLine.trimStart().startsWith("$ else") || firstLine.trimStart().startsWith("$ elif"))
+    if ((firstLine.trimStart().startsWith("$ ") && firstLine.trimEnd().endsWith("?")) || firstLine.trimStart().startsWith("$ else") || firstLine.trimStart().startsWith("$ elif"))
       return collapseConditional();
 
     return collapseHeaders();

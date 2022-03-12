@@ -139,7 +139,7 @@ function getForegroundColour(c) {
     }
   }
 
-  var headRE2 = /^((\s{8})*)(\*|\/\/)( .*)$/g
+  var headRE2 = /^((\s{8})*)(\*|\/\/)\s(.*)$/g
 
   CodeMirror.commands.markdownRenderListTags = function (cm) {
     let match
@@ -174,13 +174,14 @@ function getForegroundColour(c) {
         continue
       }
 
-      let wrapper = document.createElement('span');
+      let wrapper = document.createElement('span')
+      wrapper.textContent = match[1]
+      //wrapper.style = 'margin-left: -1em;'
       let tag = document.createElement('span')
-
       tag.className = 'branch-tag'
-      tag.textContent = '⮞' + match[match.length - 1]
-      wrapper.textContent = match[1];
-      wrapper.appendChild(tag);
+      tag.textContent = match[match.length - 1]
+      tag.style = 'margin-left: 1em;'
+      wrapper.appendChild(tag)
 
       let textMarker = cm.markText(
         curFrom, curTo,
@@ -201,7 +202,7 @@ function getForegroundColour(c) {
     }
   }
 
-  var headRE6 = /^((\s{8})*)(\*|\/\/)$/g
+  /*var headRE6 = /^((\s{8})*)(\*|\/\/)$/g
 
   CodeMirror.commands.markdownRenderListEndTags = function (cm) {
     let match
@@ -261,7 +262,7 @@ function getForegroundColour(c) {
         cm.focus()
       }
     }
-  }
+  }*/
 
   var headRE3 = /^((\s{8})*)([>$~])( .+)$/g
 
@@ -390,7 +391,7 @@ function getForegroundColour(c) {
     }
   }
 
-  var headRE5 = /^((\s{8})*)([a-zA-Z0-9\.\-\*\(\)\{\}].+)$/g
+  var headRE5 = /^((\s{8})*)([a-zA-Z0-9\.\-\*\(\)\{\}\"\'].+)$/g
 
   CodeMirror.commands.markdownRenderPlayerTags = function (cm) {
     let match
@@ -446,25 +447,25 @@ function getForegroundColour(c) {
             if ((line2.length - line2.trimStart().length) / 8 === (buffer.length - buffer.trimStart().length) / 8)
               continue;
 
-            if ((line2.length - line2.trimStart().length) / 8 === indent + 2)
+            if ((line2.length - line2.trimStart().length) / 8 === indent - 2)
               isPlayer = true;
             break;
           }
-          if (line2.trimStart().startsWith("$") && line2.trimEnd().endsWith("?")) {
+          else if (line2.trimStart().startsWith("$") && line2.trimEnd().endsWith("?")) {
             // Indentation is optional for conditionals. If we hit a conditional, check if the first line in it is indented. If not, treat the conditional line as nonexistent.
             if ((line2.length - line2.trimStart().length) / 8 === (buffer.length - buffer.trimStart().length) / 8)
               continue;
 
-            if ((line2.length - line2.trimStart().length) / 8 === indent + 2)
+            if ((line2.length - line2.trimStart().length) / 8 === indent - 2)
               isPlayer = true;
             break;
           }
-          if (line2.trimStart().startsWith("@")) {
+          else if (line2.trimStart().startsWith("@")) {
             if ((line2.length - line2.trimStart().length) / 8 === indent)
               isPlayer = true;
             break;
           }
-          if ((/^(\s{4})*[a-zA-Z0-9\-\*\.\(\)\{\}][a-zA-Z0-9\-\*\.\s\(\)\{\}]/gi).test(line2)) {
+          else if ((/^(\s{4})*[a-zA-Z0-9\-\*\.\(\)\{\}\"\'][a-zA-Z0-9\-\*\.\s\(\)\{\}\"\']/gi).test(line2)) {
             if((line2.length - line2.trimStart().length) / 8 === indent)
               continue;
             if ((line2.length - line2.trimStart().length) / 8 === indent - 1)
