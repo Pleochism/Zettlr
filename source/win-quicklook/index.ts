@@ -17,9 +17,9 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import windowRegister from '@common/modules/window-register'
-import { CodeFileMeta, MDFileMeta } from '../main/modules/fsal/types'
+import { CodeFileMeta, MDFileMeta } from '@dts/common/fsal'
 
-const ipcRenderer = (window as any).ipc as Electron.IpcRenderer
+const ipcRenderer = window.ipc
 
 // The first thing we have to do is run the window controller
 windowRegister()
@@ -38,7 +38,7 @@ ipcRenderer.on('config-provider', (event, message) => {
   if (command === 'update') {
     const { payload } = message
     if (payload === 'editor.fontSize') {
-      app.$data.fontSize = global.config.get('editor.fontSize')
+      app.$data.fontSize = window.config.get('editor.fontSize')
     }
   }
 })
@@ -67,14 +67,13 @@ if (filePath === null) {
         app.$data.tags = (file.type === 'file') ? file.tags : ''
         app.$data.wordCount = (file.type === 'file') ? file.wordCount : 0
         app.$data.charCount = (file.type === 'file') ? file.charCount : 0
-        app.$data.target = (file.type === 'file') ? file.target : null
         app.$data.firstHeading = (file.type === 'file') ? file.firstHeading : null
         app.$data.frontmatter = (file.type === 'file') ? file.frontmatter : null
         app.$data.linefeed = file.linefeed
         app.$data.modified = file.modified
         app.$data.content = file.content
         // Set the correct font size
-        app.$data.fontSize = global.config.get('editor.fontSize')
+        app.$data.fontSize = window.config.get('editor.fontSize')
       }).catch((e) => {
         console.error(e)
       })

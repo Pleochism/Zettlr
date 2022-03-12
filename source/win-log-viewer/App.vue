@@ -38,9 +38,10 @@
 import LogMessage from './LogMessage.vue'
 import WindowChrome from '@common/vue/window/Chrome.vue'
 import { nextTick, defineComponent } from 'vue'
-import { IpcRenderer } from 'electron'
+import { ToolbarControl } from '@dts/renderer/window'
+import { LogMessage as LM } from '@dts/main/log-provider'
 
-const ipcRenderer: IpcRenderer = (window as any).ipc
+const ipcRenderer = window.ipc
 
 export default defineComponent({
   components: {
@@ -51,30 +52,29 @@ export default defineComponent({
     return {
       filter: '', // Optionally filter the messages with a string
       nextIndex: 0, // Last log message array index; updated from the main process
-      messages: [] as LogMessage[], // Holds all the log files
-      // Filters TODO: Actually enable setting and getting these
-      includeVerbose: true,
-      includeInfo: true,
+      messages: [] as LM[], // Holds all the log files
+      includeVerbose: false,
+      includeInfo: false,
       includeWarning: true,
       includeError: true
     }
   },
   computed: {
-    filteredMessages: function (): LogMessage[] {
+    filteredMessages: function (): LM[] {
       const preFiltered = this.messages.filter(message => {
-        if (this.includeVerbose === true && message.level === 1) {
+        if (this.includeVerbose && message.level === 1) {
           return true
         }
 
-        if (this.includeInfo === true && message.level === 2) {
+        if (this.includeInfo && message.level === 2) {
           return true
         }
 
-        if (this.includeWarning === true && message.level === 3) {
+        if (this.includeWarning && message.level === 3) {
           return true
         }
 
-        if (this.includeError === true && message.level === 4) {
+        if (this.includeError && message.level === 4) {
           return true
         }
 
@@ -94,6 +94,7 @@ export default defineComponent({
     toolbarControls: function () {
       return [
         {
+          id: 'filter-text',
           type: 'text',
           content: 'Filter messages:'
         },
@@ -102,14 +103,14 @@ export default defineComponent({
           label: 'Verbose',
           id: 'verboseToggle',
           activeClass: 'verbose-control-active',
-          initialState: 'active'
+          initialState: ''
         },
         {
           type: 'toggle',
           label: 'Info',
           id: 'infoToggle',
           activeClass: 'info-control-active',
-          initialState: 'active'
+          initialState: ''
         },
         {
           type: 'toggle',
@@ -127,13 +128,15 @@ export default defineComponent({
         },
         {
           type: 'spacer', // Make sure the content is flushed to the left
+          id: 'spacer-one',
           size: '3x'
         },
         {
           type: 'search',
+          id: 'log-filter',
           placeholder: 'Filter …'
         }
-      ]
+      ] as ToolbarControl[]
     }
   },
   mounted: function () {

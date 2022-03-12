@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* global CodeMirror define */
 // This plugin renders Bear-style heading indicators
 

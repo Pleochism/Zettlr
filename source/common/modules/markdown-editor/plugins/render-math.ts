@@ -17,6 +17,7 @@ import CodeMirror from 'codemirror'
 import katex from 'katex'
 
 import 'katex/contrib/mhchem' // modify katex module
+import clickAndClear from './util/click-and-clear'
 
 const multilineMathRE = getBlockMathRE()
 const commands = (CodeMirror.commands as any)
@@ -75,12 +76,16 @@ commands.markdownRenderMath = function (cm: CodeMirror.Editor) {
     )
 
     // Enable on-click closing of rendered Math elements.
-    mathSpan.onclick = (e) => { textMarker.clear() }
+    mathSpan.onclick = clickAndClear(textMarker, cm)
 
     katex.render(myMarker.eq, mathSpan, { throwOnError: false, displayMode: myMarker.displayMode })
 
     // Now the marker has obviously changed
-    textMarker.changed()
+    if (textMarker.find() !== undefined) {
+      textMarker.changed()
+    } else {
+      console.warn('Warning: Attempted to update a text marker after KaTeX finished rendering, but it wasn\' in the document anymore.')
+    }
   }
 }
 

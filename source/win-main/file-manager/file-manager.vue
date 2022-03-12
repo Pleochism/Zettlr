@@ -36,7 +36,7 @@
         class="file-manager-filter-input"
         type="search"
         v-bind:placeholder="filterPlaceholder"
-        v-on:focus="$event.target.select()"
+        v-on:focus="($event.target as HTMLInputElement).select()"
       />
     </div>
 
@@ -67,7 +67,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 /**
  * @ignore
  * BEGIN HEADER
@@ -85,12 +85,11 @@ import findObject from '@common/util/find-object'
 import FileTree from './file-tree.vue'
 import FileList from './file-list.vue'
 import { trans } from '@common/i18n-renderer'
-
-import { nextTick } from 'vue'
+import { nextTick, defineComponent } from 'vue'
 
 const ipcRenderer = window.ipc
 
-export default {
+export default defineComponent({
   components: {
     FileTree,
     FileList
@@ -165,8 +164,8 @@ export default {
      */
     fileManagerMode: function () {
       // Reset all properties from the resize operations.
-      const fileTree = this.$refs.directories.$el
-      const fileList = this.$refs.fileList.$el
+      const fileTree = (this.$refs.directories as any).$el as HTMLElement
+      const fileList = (this.$refs.fileList as any).$el as HTMLElement
       fileTree.style.removeProperty('width')
       fileTree.style.removeProperty('left')
       fileList.style.removeProperty('width')
@@ -191,7 +190,7 @@ export default {
         // the file manager is hidden, or the global search is visible. In both
         // cases we need to wait for the app to display the file manager.
         nextTick()
-          .then(() => { this.$refs['quickFilter'].focus() })
+          .then(() => { (this.$refs['quickFilter'] as any).focus() })
           .catch(err => console.error(err))
       }
     })
@@ -210,10 +209,10 @@ export default {
       }
 
       // Switch back to directories in case of fileManagerMode changes
-      if (this.isThin === false && this.isFileListVisible === true) {
+      if (!this.isThin && this.isFileListVisible === true) {
         this.fileTreeVisible = true
         this.fileListVisible = false
-        this.$refs.arrowButton.classList.add('hidden') // Hide the arrow button
+        ;(this.$refs.arrowButton as HTMLElement).classList.add('hidden') // Hide the arrow button
         return
       }
 
@@ -221,7 +220,7 @@ export default {
         // Display directories
         this.fileTreeVisible = true
         this.fileListVisible = false
-        this.$refs.arrowButton.classList.add('hidden') // Hide the arrow button
+        ;(this.$refs.arrowButton as HTMLElement).classList.add('hidden') // Hide the arrow button
       } else {
         // Display the file list
         this.fileTreeVisible = false
@@ -232,8 +231,8 @@ export default {
      * Display the arrow button for nagivation, if applicable.
      * @param {MouseEvent} evt The associated event.
      */
-    maybeShowArrowButton: function (evt) {
-      const canShowFileTree = this.isFileListVisible === true && this.isThin === true
+    maybeShowArrowButton: function (evt: MouseEvent) {
+      const canShowFileTree = this.isFileListVisible && this.isThin
 
       // Only show the button if the mouse is in the top of the file manager.
       // We're adding 10px padding to make sure we have some leeway in case of
@@ -244,15 +243,15 @@ export default {
         evt.clientX >= left && evt.clientX <= right - 10 &&
         evt.clientY >= top + 10 && evt.clientY <= top + 200
       ) {
-        this.$refs.arrowButton.classList.remove('hidden')
+        (this.$refs.arrowButton as HTMLElement).classList.remove('hidden')
       } else {
-        this.$refs.arrowButton.classList.add('hidden')
+        (this.$refs.arrowButton as HTMLElement).classList.add('hidden')
       }
     },
-    maybeNavigate: function (evt) {
+    maybeNavigate: function (evt: KeyboardEvent) {
       // If the file list is visible we can navigate
       if (this.isFileListVisible === true) {
-        this.$refs.fileList.navigate(evt)
+        (this.$refs.fileList as any).navigate(evt)
       }
     },
     /**
@@ -260,12 +259,12 @@ export default {
      * elements onto elements currently out of viewport.
      * @param {DragEvent} evt The associated event.
      */
-    handleDragOver: function (evt) {
+    handleDragOver: function (evt: DragEvent) {
       // We have to handle the dragging functionality manually, as all other
       // mouse and keyboard events are suppressed during a drag operation.
       // We need to scroll the tree container probably, and have to check it.
       let y = evt.clientY
-      let elem = this.$refs.directories.$el
+      let elem = (this.$refs.directories as any).$el as HTMLElement
       let scroll = elem.scrollTop
       let distanceBottom = elem.offsetHeight - y // The less the value, the closer
       let distanceTop = (scroll > 0) ? y - elem.offsetTop : 0
@@ -280,7 +279,7 @@ export default {
         elem.scrollTop -= 10 - distanceTop / 10
       }
     },
-    handleWheel: function (event) {
+    handleWheel: function (event: WheelEvent) {
       // Determine if we can scroll back & forth
       if (process.platform !== 'darwin') {
         return // macOS only
@@ -311,13 +310,14 @@ export default {
      * the file list, if it's not visible.
      * @param {MouseEvent} evt The bubbled event.
      */
-    selectionListener: function (evt) {
+    selectionListener: function (evt: MouseEvent) {
+      const target = evt.target as null|HTMLElement
       // No hash property? Nothing to do.
-      if (evt.target === null || !('hash' in evt.target.dataset)) {
+      if (target === null || target.dataset.hash === undefined) {
         return
       }
 
-      const obj = findObject(this.$store.state.fileTree, 'hash', parseInt(evt.target.dataset.hash), 'children')
+      const obj = findObject(this.$store.state.fileTree, 'hash', parseInt(target.dataset.hash), 'children')
       // Nothing found/type is a file? Return.
       if (obj != null || obj.type === 'file') return
       if (this.isFileListVisible === false) {
@@ -360,7 +360,7 @@ export default {
      * Begins a resize of the inner file manager components.
      * @param {MouseEvent} evt The associated event.
      */
-    fileManagerStartInnerResize: function (evt) {
+    fileManagerStartInnerResize: function (evt: MouseEvent) {
       // Begin to resize the inner file manager
       this.fileManagerInnerResizing = true
       this.fileManagerInnerResizeX = evt.clientX
@@ -371,13 +371,13 @@ export default {
      * Resizes the inner components according to the drag direction.
      * @param {MouseEvent} evt The associated event.
      */
-    fileManagerInnerResize: function (evt) {
+    fileManagerInnerResize: function (evt: MouseEvent) {
       if (this.fileManagerInnerResizing === false) {
         return
       }
 
-      const fileTree = this.$refs.directories.$el
-      const fileList = this.$refs.fileList.$el
+      const fileTree = (this.$refs.directories as any).$el as HTMLElement
+      const fileList = (this.$refs.fileList as any).$el as HTMLElement
 
       // x > 0 means: Direction -->
       // x < 0 means: Direction <--
@@ -394,20 +394,20 @@ export default {
       fileList.style.width = (this.$el.offsetWidth - fileTree.offsetWidth + x) + 'px'
       // Reposition the resizer handle exactly on top of the divider, hence
       // substract the half width
-      this.$refs.fileManagerInnerResizer.style.left = (fileTree.offsetWidth + x - 5) + 'px'
+      ;(this.$refs.fileManagerInnerResizer as HTMLElement).style.left = (fileTree.offsetWidth + x - 5) + 'px'
     },
     /**
      * Stops resizing of the inner elements on release of the mouse button.
      * @param {MouseEvent} evt The associated event
      */
-    fileManagerStopInnerResize: function (evt) {
+    fileManagerStopInnerResize: function (evt: MouseEvent) {
       this.fileManagerInnerResizing = false
       this.fileManagerInnerResizeX = 0
       this.$el.removeEventListener('mousemove', this.fileManagerInnerResize)
       this.$el.removeEventListener('mouseup', this.fileManagerStopInnerResize)
     }
   }
-}
+})
 </script>
 
 <style lang="less">
