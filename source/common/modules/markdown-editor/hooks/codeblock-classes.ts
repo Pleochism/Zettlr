@@ -30,8 +30,8 @@ const findCodeDebounced = debounce(findCode, 400, { leading: true })
  */
 export default function codeblockClassHook (cm: CodeMirror.Editor): void {
   cm.on('keyHandled', handleNewline)
-  cm.on('cursorActivity', findCodeDebounced)
-  cm.on('optionChange', findCodeDebounced)
+  //cm.on('cursorActivity', findCodeDebounced)
+  //cm.on('optionChange', findCodeDebounced)
 }
 
 /**
