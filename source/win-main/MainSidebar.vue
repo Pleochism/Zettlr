@@ -3,36 +3,97 @@
     <TabBar
       v-bind:tabs="tabs"
       v-bind:current-tab="currentTab"
-      v-on:tab="currentTab = $event"
+      v-on:tab="setCurrentTab($event)"
     ></TabBar>
 
     <!-- Now the tab containers -->
+    <div
+      v-if="currentTab === 'toc'"
+      role="tabpanel"
+    >
+      <!-- Table of Contents -->
+      <h1>{{ tocLabel }}</h1>
+      <!-- Show the ToC entries -->
+      <div
+        v-for="(entry, idx) of tableOfContents"
+        v-bind:key="idx"
+        class="toc-entry-container"
+        v-bind:style="{
+          'margin-left': `${entry.level * 10}px`
+        }"
+        v-on:click="($root as any).jtl(entry.line, true)"
+      >
+        <div class="toc-level">
+          {{ entry.renderedLevel }}
+        </div>
+        <div
+          v-bind:class="{ 'toc-entry': true, 'toc-entry-active': tocEntryIsActive(entry.line, idx) }"
+          v-bind:data-line="entry.line"
+          v-html="entry.text"
+        ></div>
+      </div>
+    </div>
+
+    <div
+      v-if="currentTab === 'references'"
+      role="tabpanel"
+    >
+      <!-- References -->
+      <h1>{{ referencesLabel }}</h1>
+      <!-- Will contain the actual HTML -->
+      <div v-html="referenceHTML"></div>
+    </div>
 
     <div
       v-if="currentTab === 'relatedFiles'"
       role="tabpanel"
     >
       <h1>{{ relatedFilesLabel }}</h1>
-      <div v-if="relatedFiles.length === 0" class="related-files-container">
-        {{ noRelatedFilesMessage }}
-      </div>
-      <div v-else class="related-files-container">
-        <div
-          v-for="fileRecord, idx in relatedFiles"
-          v-bind:key="idx"
-          class="related-file"
-        >
-          <span
-            class="filename"
-            draggable="true"
-            v-on:mousedown.stop="requestFile($event, fileRecord.path)"
-            v-on:dragstart="beginDragRelatedFile($event, fileRecord.path)"
-          >{{ getRelatedFileName(fileRecord.path) }}</span>
-          <span class="icons">
-            <!-- TODO: When we implement file links, here we should also add the link -->
-            <clr-icon shape="tag" title="This relation is based on tag similarity."></clr-icon>
-            <!-- <clr-icon shape="link"></clr-icon> -->
-          </span>
+      <div class="related-files-container">
+        <div v-if="relatedFiles.length === 0">
+          {{ noRelatedFilesMessage }}
+        </div>
+        <div v-else>
+          <div
+            v-for="fileRecord, idx in relatedFiles"
+            v-bind:key="idx"
+            v-bind:class="{
+              'related-file': true,
+              'tags': fileRecord.tags.length > 0,
+              'inbound': fileRecord.link === 'inbound',
+              'outbound': fileRecord.link === 'outbound',
+              'bidirectional': fileRecord.link === 'bidirectional'
+            }"
+          >
+            <span
+              class="filename"
+              draggable="true"
+              v-on:mousedown.stop="requestFile($event, fileRecord.path)"
+              v-on:dragstart="beginDragRelatedFile($event, fileRecord.path)"
+            >{{ getRelatedFileName(fileRecord.path) }}</span>
+            <span class="icons">
+              <clr-icon
+                v-if="fileRecord.tags.length > 0"
+                shape="tag"
+                title="This relation is based on tag similarity."
+              ></clr-icon>
+              <clr-icon
+                v-if="fileRecord.link === 'inbound'"
+                shape="arrow left"
+                title="This relation is based on a backlink."
+              ></clr-icon>
+              <clr-icon
+                v-else-if="fileRecord.link === 'outbound'"
+                shape="arrow right"
+                title="This relation is based on an outbound link."
+              ></clr-icon>
+              <clr-icon
+                v-else-if="fileRecord.link === 'bidirectional'"
+                shape="two-way-arrows"
+                title="This relation is based on a bidirectional link."
+              ></clr-icon>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -73,41 +134,10 @@
         </a>
       </template>
     </div>
-    <div
-      v-if="currentTab === 'references'"
-      role="tabpanel"
-    >
-      <!-- References -->
-      <h1>{{ referencesLabel }}</h1>
-      <!-- Will contain the actual HTML -->
-      <div v-html="referenceHTML"></div>
-    </div>
-    <div
-      v-if="currentTab === 'toc'"
-      role="tabpanel"
-    >
-      <!-- Table of Contents -->
-      <h1>{{ tocLabel }}</h1>
-      <!-- Show the ToC entries -->
-      <div
-        v-for="(entry, idx) of tableOfContents"
-        v-bind:key="idx"
-        class="toc-entry-container"
-        v-bind:style="{
-          'margin-left': `${entry.level * 10}px`
-        }"
-        v-on:click="$root.jtl(entry.line)"
-      >
-        <div class="toc-level">
-          {{ entry.renderedLevel }}
-        </div>
-        <div class="toc-entry" v-bind:data-line="entry.line" v-html="entry.text"></div>
-      </div>
-    </div>
   </div>
 </template>
 
-<script>
+<script lang="ts">
 /**
  * @ignore
  * BEGIN HEADER
@@ -124,27 +154,37 @@
 
 import { trans } from '@common/i18n-renderer'
 import { ClarityIcons } from '@clr/icons'
-import TabBar from '@common/vue/TabBar'
+import TabBar from '@common/vue/TabBar.vue'
+import { defineComponent } from 'vue'
+import { DirMeta, MDFileMeta, OtherFileMeta } from '@dts/common/fsal'
+import { TabbarControl } from '@dts/renderer/window'
 
 const path = window.path
 const ipcRenderer = window.ipc
 
-export default {
+interface RelatedFile {
+  file: string
+  path: string
+  tags: string[]
+  link: 'inbound'|'outbound'|'bidirectional'|'none'
+}
+
+export default defineComponent({
   name: 'MainSidebar',
   components: {
     TabBar
   },
-  props: {
-  },
   data: function () {
     return {
-      currentTab: 'toc',
-      bibContents: undefined,
-      relatedFiles: []
+      bibContents: undefined as undefined|any[],
+      relatedFiles: [] as RelatedFile[]
     }
   },
   computed: {
-    tabs: function () {
+    currentTab: function (): string {
+      return this.$store.state.config['window.currentSidebarTab']
+    },
+    tabs: function (): TabbarControl[] {
       return [
         {
           icon: 'indented-view-list',
@@ -172,48 +212,50 @@ export default {
         }
       ]
     },
-    otherFilesLabel: function () {
+    otherFilesLabel: function (): string {
       return trans('gui.other_files')
     },
-    referencesLabel: function () {
+    referencesLabel: function (): string {
       return trans('gui.citeproc.references_heading')
     },
-    tocLabel: function () {
+    tocLabel: function (): string {
       return trans('gui.table_of_contents')
     },
-    relatedFilesLabel: function () {
+    relatedFilesLabel: function (): string {
       return trans('gui.related_files_label')
     },
-    openDirLabel: function () {
+    openDirLabel: function (): string {
       return trans('gui.attachments_open_dir')
     },
-    noAttachmentsMessage: function () {
+    noAttachmentsMessage: function (): string {
       return trans('gui.no_other_files')
     },
-    noRelatedFilesMessage: function () {
+    noRelatedFilesMessage: function (): string {
       return trans('gui.no_related_files')
     },
-    attachments: function () {
-      const currentDir = this.$store.state.selectedDirectory
+    attachments: function (): OtherFileMeta[] {
+      const currentDir = this.$store.state.selectedDirectory as DirMeta|null
       if (currentDir === null) {
         return []
       } else {
-        return currentDir.attachments
+        const extensions: string[] = this.$store.state.config.attachmentExtensions
+        const attachments = currentDir.children.filter(child => child.type === 'other') as OtherFileMeta[]
+        return attachments.filter(attachment => extensions.includes(attachment.ext))
       }
     },
-    activeFile: function () {
+    activeFile: function (): MDFileMeta|null {
       return this.$store.state.activeFile
     },
-    modifiedFiles: function () {
+    modifiedFiles: function (): string[] {
       return this.$store.state.modifiedDocuments
     },
-    tableOfContents: function () {
+    tableOfContents: function (): any|null {
       return this.$store.state.tableOfContents
     },
-    citationKeys: function () {
+    citationKeys: function (): string[] {
       return this.$store.state.citationKeys
     },
-    referenceHTML: function () {
+    referenceHTML: function (): string {
       if (this.bibContents === undefined || this.bibContents[1].length === 0) {
         return `<p>${trans('gui.citeproc.references_none')}</p>`
       } else {
@@ -227,15 +269,24 @@ export default {
 
         return html.join('\n')
       }
+    },
+    useH1: function (): boolean {
+      return this.$store.state.config.fileNameDisplay.includes('heading')
+    },
+    useTitle: function (): boolean {
+      return this.$store.state.config.fileNameDisplay.includes('title')
+    },
+    displayMdExtensions: function (): boolean {
+      return this.$store.state.config['display.markdownFileExtensions']
     }
   },
   watch: {
     citationKeys: function () {
       // Reload the bibliography
-      this.updateReferences()
+      this.updateReferences().catch(e => console.error('Could not update references', e))
     },
     activeFile: function () {
-      this.updateRelatedFiles()
+      this.updateRelatedFiles().catch(e => console.error('Could not update related files', e))
     },
     modifiedFiles: function () {
       if (this.activeFile == null) {
@@ -246,7 +297,7 @@ export default {
       // immediately account for any changes in the related files.
       const activePath = this.activeFile.path
       if (!(activePath in this.modifiedFiles)) {
-        this.updateRelatedFiles()
+        this.updateRelatedFiles().catch(e => console.error('Could not update related files', e))
       }
     }
   },
@@ -257,53 +308,111 @@ export default {
       }
     })
 
+    ipcRenderer.on('links', () => {
+      this.updateRelatedFiles().catch(err => console.error(err))
+    })
+
     try {
-      this.updateReferences()
+      this.updateReferences().catch(e => console.error('Could not update references', e))
     } catch (err) {
       console.error(err)
     }
-    this.updateRelatedFiles()
+    this.updateRelatedFiles().catch(e => console.error('Could not update related files', e))
   },
   methods: {
-    updateReferences: function () {
+    setCurrentTab: function (which: string) {
+      (global as any).config.set('window.currentSidebarTab', which)
+    },
+    updateReferences: async function () {
       // NOTE We're manually cloning the citationKeys array, since Proxies
       // cannot be cloned to be sent across the IPC bridge
-      ipcRenderer.invoke('citeproc-provider', {
+      this.bibContents = await ipcRenderer.invoke('citeproc-provider', {
         command: 'get-bibliography',
         payload: this.citationKeys.map(e => e)
       })
-        .then(bibliography => {
-          this.bibContents = bibliography
-        })
-        .catch(err => console.error(err))
     },
-    updateRelatedFiles: function () {
+    updateRelatedFiles: async function () {
+      // First reset, default is no related files
       this.relatedFiles = []
       if (this.activeFile === null || this.activeFile.type !== 'file') {
         return
       }
 
-      ipcRenderer.invoke('tag-provider', {
+      const unreactiveList: RelatedFile[] = []
+
+      // Then retrieve the inbound links first, since that is the most important
+      // relation, so they should be on top of the list.
+      const { inbound, outbound } = await ipcRenderer.invoke('link-provider', {
+        command: 'get-inbound-links',
+        payload: { filePath: this.activeFile.path }
+      }) as { inbound: string[], outbound: string[]}
+
+      for (const absPath of [ ...inbound, ...outbound ]) {
+        const found = unreactiveList.find(elem => elem.path === absPath)
+        if (found !== undefined) {
+          continue
+        }
+
+        const related: RelatedFile = {
+          file: path.basename(absPath),
+          path: absPath,
+          tags: [],
+          link: 'none'
+        }
+
+        if (inbound.includes(absPath) && outbound.includes(absPath)) {
+          related.link = 'bidirectional'
+        } else if (inbound.includes(absPath)) {
+          related.link = 'inbound'
+        } else {
+          related.link = 'outbound'
+        }
+
+        unreactiveList.push(related)
+      }
+
+      // The second way files can be related to each other is via shared tags.
+      // This relation is not as important as explicit links, so they should
+      // be below the inbound linked files.
+      const recommendations = await ipcRenderer.invoke('tag-provider', {
         command: 'recommend-matching-files',
         payload: this.activeFile.tags.map(tag => tag) // De-proxy
       })
-        .then(recommendations => {
-          // Recommendations come in the form of [file: string]: string[]
-          for (const filePath of Object.keys(recommendations)) {
-            this.relatedFiles.push({
-              file: path.basename(filePath),
-              path: filePath,
-              tags: recommendations[filePath]
-            })
-          }
 
-          this.relatedFiles.sort((a, b) => {
-            return b.tags.length - a.tags.length
+      // Recommendations come in the form of [file: string]: string[]
+      for (const filePath of Object.keys(recommendations)) {
+        const existingFile = unreactiveList.find(elem => elem.path === filePath)
+        if (existingFile !== undefined) {
+          // This file already links here
+          existingFile.tags = recommendations[filePath]
+        } else {
+          // This file doesn't explicitly link here but it shares tags
+          unreactiveList.push({
+            file: path.basename(filePath),
+            path: filePath,
+            tags: recommendations[filePath],
+            link: 'none'
           })
-        })
-        .catch(err => console.error(err))
+        }
+      }
+
+      // Now we have all relations based on either tags or backlinks. We must
+      // now order them in such a way that the hierarchy is like that:
+      // 1. Backlinks that also share common tags
+      // 2. Backlinks that do not share common tags
+      // 3. Files that only share common tags
+      const backlinksAndTags = unreactiveList.filter(e => e.link !== 'none' && e.tags.length > 0)
+      backlinksAndTags.sort((a, b) => { return b.tags.length - a.tags.length })
+
+      const backlinksOnly = unreactiveList.filter(e => e.link !== 'none' && e.tags.length === 0)
+      // No sorting necessary
+
+      const tagsOnly = unreactiveList.filter(e => e.link === 'none')
+      tagsOnly.sort((a, b) => { return b.tags.length - a.tags.length })
+
+      this.relatedFiles = [ ...backlinksAndTags, ...backlinksOnly, ...tagsOnly ]
     },
-    getIcon: function (attachmentPath) {
+    getIcon: function (attachmentPath: string) {
       const fileExtIcon = ClarityIcons.get('file-ext')
       if (typeof fileExtIcon === 'string') {
         return fileExtIcon.replace('EXT', path.extname(attachmentPath).slice(1, 4))
@@ -317,11 +426,11 @@ export default {
      * @param   {DragEvent}  event           The drag event
      * @param   {string}  attachmentPath  The path to add as a file
      */
-    handleDragStart: function (event, attachmentPath) {
+    handleDragStart: function (event: DragEvent, attachmentPath: string) {
       // Indicate with custom data that this is a file from the sidebar
-      event.dataTransfer.setData('text/x-zettlr-other-file', attachmentPath)
+      event.dataTransfer?.setData('text/x-zettlr-other-file', attachmentPath)
     },
-    requestFile: function (event, filePath) {
+    requestFile: function (event: MouseEvent, filePath: string) {
       ipcRenderer.invoke('application', {
         command: 'open-file',
         payload: {
@@ -331,31 +440,54 @@ export default {
       })
         .catch(e => console.error(e))
     },
-    getRelatedFileName: function (filePath) {
+    getRelatedFileName: function (filePath: string) {
       const descriptor = this.$store.getters.file(filePath)
       if (descriptor === null) {
         return filePath
       }
 
-      if (descriptor.frontmatter !== null && 'title' in descriptor.frontmatter) {
+      if (this.useTitle && descriptor.frontmatter !== null && typeof descriptor.frontmatter.title === 'string') {
         return descriptor.frontmatter.title
-      } else if (descriptor.firstHeading !== null && Boolean(this.$store.state.config['display.useFirstHeadings'])) {
+      } else if (this.useH1 && descriptor.firstHeading !== null) {
         return descriptor.firstHeading
+      } else if (this.displayMdExtensions) {
+        return descriptor.name
       } else {
         return descriptor.name.replace(descriptor.ext, '')
       }
     },
-    beginDragRelatedFile: function (event, filePath) {
+    beginDragRelatedFile: function (event: DragEvent, filePath: string) {
       const descriptor = this.$store.getters.file(filePath)
 
-      event.dataTransfer.setData('text/x-zettlr-file', JSON.stringify({
-        'type': descriptor.type, // Can be file, code, or directory
-        'path': descriptor.path,
-        'id': descriptor.id // Convenience
+      event.dataTransfer?.setData('text/x-zettlr-file', JSON.stringify({
+        type: descriptor.type, // Can be file, code, or directory
+        path: descriptor.path,
+        id: descriptor.id // Convenience
       }))
+    },
+    /**
+     * Whether the cursor is within the corresponding document section
+     *
+     * @param   {number}  tocEntryLine          Line number of section heading
+     * @param   {number}  tocEntryIdx           Index of heading in ToC
+     */
+    tocEntryIsActive: function (tocEntryLine: number, tocEntryIdx: number) {
+      const cursorLine = this.$store.state.activeDocumentInfo.cursor.line
+
+      // Determine index of next heading in ToC list
+      const nextTocEntryIdx = Math.min(tocEntryIdx + 1, this.tableOfContents.length - 1)
+
+      // Now, determine the next heading's line number
+      let nextTocEntryLine = Infinity
+      if (tocEntryIdx !== nextTocEntryIdx) {
+        nextTocEntryLine = this.tableOfContents[nextTocEntryIdx].line
+      }
+
+      // True, when cursor lies between current and next heading
+      return (cursorLine >= tocEntryLine && cursorLine < nextTocEntryLine)
     }
   }
-}
+})
 </script>
 
 <style lang="less">
@@ -438,6 +570,7 @@ body {
       // margin-left: calc(attr(data-level) * 10px);
       display: flex;
       margin-bottom: 10px;
+      margin-right: 10px;
 
       div.toc-level {
         flex-shrink: 1;
@@ -451,6 +584,11 @@ body {
         cursor: pointer;
         &:hover { text-decoration: underline; }
       }
+
+      div.toc-entry-active {
+        font-weight: bold;
+        color: var(--system-accent-color);
+      }
     }
 
     div.related-files-container {
@@ -459,6 +597,7 @@ body {
       div.related-file {
         margin-bottom: 10px;
         display: flex;
+        align-items: center;
 
         span.filename {
           display: inline-block;

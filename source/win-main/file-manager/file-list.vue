@@ -49,7 +49,7 @@
       -->
       <FileItem
         v-for="item in getDirectoryContents"
-        v-bind:key="item.hash"
+        v-bind:key="item.id"
         v-bind:index="0"
         v-bind:obj="item.props"
         v-on:create-file="handleOperation('file-new', item.id)"
@@ -57,7 +57,7 @@
       >
       </FileItem>
       <div
-        v-if="getDirectoryContents[0].type === 'directory'"
+        v-if="getDirectoryContents[0].props.type === 'directory'"
         class="empty-directory"
       >
         {{ emptyDirectoryMessage }}
@@ -72,7 +72,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 /**
  * @ignore
  * BEGIN HEADER
@@ -90,16 +90,17 @@
 
 import { trans } from '@common/i18n-renderer'
 import tippy from 'tippy.js'
-import FileItem from './file-item'
+import FileItem from './file-item.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import objectToArray from '@common/util/object-to-array'
 import matchQuery from './util/match-query'
 
-import { nextTick } from 'vue'
+import { nextTick, defineComponent } from 'vue'
+import { MDFileMeta, CodeFileMeta, DirMeta, OtherFileMeta } from '@dts/common/fsal'
 
 const ipcRenderer = window.ipc
 
-export default {
+export default defineComponent({
   name: 'FileList',
   components: {
     FileItem,
@@ -117,55 +118,63 @@ export default {
   },
   data: function () {
     return {
-      activeDescriptor: null // Can contain the active ("focused") item
+      activeDescriptor: null as any|null // Can contain the active ("focused") item
     }
   },
   computed: {
-    selectedDirectory: function () {
+    selectedDirectory: function (): any {
       return this.$store.state.selectedDirectory
     },
-    selectedDirectoryHash: function () {
+    selectedDirectoryHash: function (): string {
       if (this.selectedDirectory === null) {
         return ''
       } else {
         return this.selectedDirectory.hash
       }
     },
-    noResultsMessage: function () {
+    noResultsMessage: function (): string {
       return trans('gui.no_search_results')
     },
-    emptyFileListMessage: function () {
+    emptyFileListMessage: function (): string {
       return trans('gui.no_dir_selected')
     },
-    emptyDirectoryMessage: function () {
+    emptyDirectoryMessage: function (): string {
       return trans('gui.empty_dir')
     },
-    selectedFile: function () {
+    selectedFile: function (): string {
       return this.$store.state.activeFile
     },
-    itemHeight: function () {
+    itemHeight: function (): number {
       if (this.$store.state.config['fileMeta'] === true) {
         return 70
       } else {
         return 30
       }
     },
-    getDirectoryContents: function () {
+    getDirectoryContents: function (): Array<{ id: number, props: MDFileMeta|CodeFileMeta|DirMeta}> {
       if (this.$store.state.selectedDirectory === null) {
         return []
       }
 
-      let ret = []
-      const items = objectToArray(this.$store.state.selectedDirectory, 'children')
+      const ret: Array<{ id: number, props: MDFileMeta|CodeFileMeta|DirMeta}> = []
+      const items = objectToArray(this.$store.state.selectedDirectory, 'children') as Array<MDFileMeta|CodeFileMeta|DirMeta|OtherFileMeta>
       for (let i = 0; i < items.length; i++) {
-        ret.push({
-          id: i, // This helps the virtual scroller to adequately position the items
-          props: items[i] // The actual item
-        })
+        if (items[i].type !== 'other') {
+          ret.push({
+            id: i, // This helps the virtual scroller to adequately position the items
+            props: items[i] as MDFileMeta|CodeFileMeta|DirMeta // The actual item
+          })
+        }
       }
       return ret
     },
-    getFilteredDirectoryContents: function () {
+    useH1: function (): boolean {
+      return this.$store.state.config.fileNameDisplay.includes('heading')
+    },
+    useTitle: function (): boolean {
+      return this.$store.state.config.fileNameDisplay.includes('title')
+    },
+    getFilteredDirectoryContents: function (): any[] {
       // Returns a list of directory contents, filtered
       const originalContents = this.getDirectoryContents
 
@@ -175,7 +184,7 @@ export default {
         return originalContents
       }
 
-      const filter = matchQuery(q, this.$store.state.config['display.useFirstHeadings'])
+      const filter = matchQuery(q, this.useTitle, this.useH1)
 
       // Filter based on the query (remember: there's an ID and a "props" property)
       return originalContents.filter(element => {
@@ -221,7 +230,7 @@ export default {
      * Hold Shift for moving by 10 files, Command or Control to
      * jump to the very end.
      */
-    navigate: function (evt) {
+    navigate: function (evt: KeyboardEvent) {
       // Only capture arrow movements
       if (![ 'ArrowDown', 'ArrowUp', 'Enter' ].includes(evt.key)) {
         return
@@ -357,22 +366,26 @@ export default {
         }
       }
     },
-    onFocusHandler: function (event) {
+    onFocusHandler: function (event: any) {
       this.activeDescriptor = this.selectedFile
     },
     focusFilter: function () {
-      this.$refs.quickFilter.focus()
+      (this.$refs.quickFilter as HTMLInputElement).focus()
     },
-    handleOperation: async function (type, idx) {
+    handleOperation: async function (type: string, idx: number) {
       // Creates files and directories, or duplicates a file.
-      const source = this.getDirectoryContents.find(item => item.id === idx).props
+      const source = this.getDirectoryContents.find(item => item.id === idx)?.props
+      if (source === undefined) {
+        throw new Error('Could not handle file list operation: Source was undefined')
+      }
+
       await ipcRenderer.invoke('application', {
         command: type,
         payload: { path: source.path }
       })
     }
   }
-}
+})
 </script>
 
 <style lang="less">

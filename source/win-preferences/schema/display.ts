@@ -60,8 +60,8 @@ export default function (): any {
         },
         {
           type: 'checkbox',
-          label: trans('dialog.preferences.display.use_first_headings'),
-          model: 'display.useFirstHeadings'
+          label: trans('dialog.preferences.display.render_emphasis'),
+          model: 'display.renderEmphasis'
         }
       ],
       [
@@ -114,6 +114,13 @@ export default function (): any {
           // Disable on anything except macOS and Windows
           disabled: !isWinOrMac,
           info: (!isWinOrMac) ? trans('dialog.preferences.theme.accent_color_info') : undefined
+        }
+      ],
+      [
+        {
+          type: 'checkbox',
+          label: trans('dialog.preferences.display.hide_toolbar_distraction_free'),
+          model: 'display.hideToolbarInDistractionFree'
         }
       ],
       [

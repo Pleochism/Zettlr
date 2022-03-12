@@ -28,6 +28,10 @@ declare module '*.svg'
 declare module '*.mp3'
 declare module '*.wav'
 
+declare module 'vue-virtual-scroller'
+declare module '@joplin/turndown'
+declare module 'joplin-turndown-plugin-gfm'
+
 /**
  * DECLARE ELECTRON-FORGE INSERTION VARIABLES
  *
@@ -62,25 +66,6 @@ declare const PROJECT_PROPERTIES_PRELOAD_WEBPACK_ENTRY: string
 declare const PROJECT_PROPERTIES_WEBPACK_ENTRY: string
 
 /**
- * DECLARE THE GLOBAL INTERFACES
- */
-interface Application {
-  runCommand: (command: string, payload?: any) => Promise<any>
-  isQuitting: () => boolean
-  showLogViewer: () => void
-  showPreferences: () => void
-  displayErrorMessage: (title: string, message: string, contents?: string) => void
-  showAboutWindow: () => void
-  showDefaultsPreferences: () => void
-  showTagManager: () => void
-  showAnyWindow: () => void
-  findFile: (prop: any) => MDFileDescriptor | CodeFileDescriptor | null
-  findDir: (prop: any) => DirDescriptor | null
-  // Same as findFile, only with content
-  getFile: (fileDescriptor: MDFileDescriptor | CodeFileDescriptor) => Promise<MDFileMeta | CodeFileMeta>
-}
-
-/**
  * Declare and extend the global NodeJS object to enable the globals
  * for the service providers.
  *
@@ -88,35 +73,138 @@ interface Application {
  * types files in ./source/app/service-providers/assets
  */
 declare module global {
-  var assets: AssetsProvider
-  var css: CssProvider
-  var dict: DictionaryProvider
-  var log: LogProvider
-  var store: any
-  var notify: NotificationProvider
-  var ipc: any
-  var citeproc: CiteprocProvider
-  var config: ConfigProvider
-  var application: Application
-  var typo: any
-  var preBootLog: BootLog[]
-  var tippy: any
-  var updates: UpdateProvider
-  var translations: any
-  var targets: TargetProvider
-  var tags: TagProvider
-  var stats: StatsProvider
-  var recentDocs: RecentDocumentsProvider
   // Translation data necessary to facilitate internationalisation
   var i18n: any
   var i18nRawData: any
   var i18nFallback: any
   var i18nFallbackRawData: any
-  var tray: TrayProvider
-  // This type is only required in the renderer processes since the
-  // applicationMenuHelper is shared via the browser process's window object.
-  var menuProvider: {
-    show: (position: Point | Rect, items: AnyMenuItem[], callback: (clickedID: string) => void, cleanup?: boolean) => () => void
+}
+
+declare interface Window {
+  /**
+   * The config API provides methods to read and set configuration values
+   */
+  config: {
+    /**
+     * Returns the config value associated with the provided key. If key is
+     * undefined, returns the full configuration.
+     *
+     * @param   {string}  key  The key to retrieve
+     *
+     * @return  {any}          The value associated with key
+     */
+    get: (key?: string) => any
+    /**
+     * Sets the configuration value associated with key to value.
+     *
+     * @param   {string}  key    The key to set
+     * @param   {any}     value  The value to set the key to
+     */
+    set: (key: string, value: any) => void
+  }
+  /**
+   * Takes citation items and returns a rendered citation from main
+   *
+   * @param   {CiteItem[]}  items      The cite items (as CSL JSON)
+   * @param   {boolean}     composite  Whether the citation is composite
+   *
+   * @return  {string|undefined}       The rendered citation, or undefined
+   */
+  getCitation: (items: CiteItem[], composite: boolean) => string|undefined
+  ipc: {
+    /**
+     * Sends a message to main (fire-and-forget)
+     *
+     * @param   {string}  channel  The channel to send upon
+     * @param   {any[]}   args     Arguments to provide
+     *
+     */
+    send: (channel: string, ...args: any[]) => void
+    /**
+     * Sends a synchronous message and returns the response immediately.
+     *
+     * @param   {string}  event  The channel to send upon
+     * @param   {any[]}   args   Arguments for that call
+     *
+     * @return  {any}             Whichever this call returns from main
+     */
+    sendSync: (event: string, ...args: any[]) => any
+    /**
+     * Sens a message to main and returns a promise which fulfills with the
+     * response from main.
+     *
+     * @param   {string}        channel  The channel to send upon
+     * @param   {any[]}         args     Arguments for that call
+     *
+     * @return  {Promise<any>}           Whichever this call returns from main
+     */
+    invoke: (channel: string, ...args: any[]) => Promise<any>
+    /**
+     * Listens to broadcasted messages from main
+     *
+     * @param   {string}     channel   The channel on which to listen
+     * @param   {undefined}  listener  An event. This will always be omitted and undefined.
+     * @param   {any}        args      Any payload that was sent from main
+     */
+    on: (channel: string, listener: (event: undefined, ...args: any) => void) => void
+  }
+  path: RendererPath
+  clipboard: {
+    /**
+     * Returns whatever text is currently in the clipboard
+     *
+     * @return  {string}  The clipboard's plain text contents
+     */
+    readText: () => string
+    /**
+     * Returns whatever HTML is currently in the clipboard
+     *
+     * @return  {string}  The clipboard's HTML contents
+     */
+    readHTML: () => string
+    /**
+     * Returns whatever RTF is currently in the clipboard
+     *
+     * @return  {string}  The clipboard's RTF contents
+     */
+    readRTF: () => string
+    /**
+     * Is there currently image data in the clipboard?
+     *
+     * @return  {boolean}  True if the clipboard contains a non-empty image
+     */
+    hasImage: () => boolean
+    /**
+     * Returns the image data for the clipbord content
+     *
+     * @return {{ size: Electron.Size, aspect: number, dataUrl: string }} The image data
+     */
+    getImageData: () => { size: Electron.Size, aspect: number, dataUrl: string }
+    /**
+     * Writes the data into the clipboard
+     *
+     * @param {Electron.Data} data The data to be written to the clipboard
+     */
+    write: (data: Electron.Data) => void
+    /**
+     * Writes the given text into the clipboard
+     *
+     * @param   {string}  text  The text to put into the clipboard
+     */
+    writeText: (text: string) => void
+    /**
+     * Determines whether there is currently a selection clipboard (Linux)
+     *
+     * @return  {boolean}  True if there is a selection clipboard
+     */
+    hasSelectionClipboard: () => boolean
+    /**
+     * Returns the plain text and HTML contents of the selection clipboard on
+     * linux.
+     *
+     * @return  {{text: string, html: string}}}  Returns an object containing HTML and text contents
+     */
+    getSelectionClipboard: () => { text: string, html: string }
   }
 }
 
@@ -131,68 +219,4 @@ interface DocumentInfo {
     start: { ch: number, line: number }
     end: { ch: number, line: number }
   }>
-}
-
-/**
- * Declare the Vuex store used in the MainWindow
- */
-interface ZettlrState {
-  /**
-   * Contains the full file tree that is loaded into the app
-   */
-  fileTree: Array<MDFileMeta|CodeFileMeta|DirMeta>
-  /**
-   * Contains the last update timestamp from main
-   */
-  lastFiletreeUpdate: number
-  /**
-   * Contains the currently selected directory
-   */
-  selectedDirectory: any|null
-  /**
-   * Contains the currently active File in the editor
-   */
-  activeFile: any|null
-  /**
-   * Contains all open files in the editor
-   */
-  openFiles: any[]
-  /**
-   * Contains coloured tags that can be managed in the tag manager
-   */
-  colouredTags: any[]
-  /**
-   * Contains all tags across all files loaded into Zettlr
-   */
-  tagDatabase: any[]
-  /**
-   * Contains a list of suggested tags for the current active file.
-   */
-  tagSuggestions: string[]
-  /**
-   * Holds all configuration options. These need to be stored here separately
-   * to make use of the reactivity of Vue. We'll basically be binding the config
-   * listener to this store state. It's basically a dictionary for quick access.
-   */
-  config: any
-  /**
-   * Info about the currently active document
-   */
-  activeDocumentInfo: DocumentInfo|null
-  /**
-   * Modified files are stored here (only the paths, though)
-   */
-  modifiedDocuments: string[]
-  /**
-   * Contains the current table of contents of the active document
-   */
-  tableOfContents: any|null
-  /**
-   * Citation keys to be found within the current document
-   */
-  citationKeys: string[]
-  /**
-   * All CSL items available in the currently loaded database
-   */
-  cslItems: any[]
 }

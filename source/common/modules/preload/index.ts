@@ -17,8 +17,7 @@
 import { contextBridge, ipcRenderer, clipboard } from 'electron'
 import path from 'path'
 
-// Path functions are harmless and can be exposed as-is
-contextBridge.exposeInMainWorld('path', { ...path })
+contextBridge.exposeInMainWorld('path', path)
 
 // We need a few ipc methods
 contextBridge.exposeInMainWorld('ipc', {
@@ -31,8 +30,30 @@ contextBridge.exposeInMainWorld('ipc', {
   })
 })
 
+contextBridge.exposeInMainWorld('config', {
+  get: function (property?: string) {
+    return ipcRenderer.sendSync('config-provider', {
+      command: 'get-config',
+      payload: { key: property }
+    })
+  },
+  set: function (property: string, value: any) {
+    ipcRenderer.sendSync('config-provider', {
+      command: 'set-config-single',
+      payload: { key: property, val: value }
+    })
+  }
+})
+
 // DEBUG
 contextBridge.exposeInMainWorld('__dirname', '')
+
+contextBridge.exposeInMainWorld('getCitation', function (items: CiteItem[], composite: boolean): string|undefined {
+  return ipcRenderer.sendSync('citation-renderer', {
+    command: 'get-citation-sync',
+    payload: { citations: items, composite: composite }
+  })
+})
 
 // Expose the subset of clipboard functions which we use
 contextBridge.exposeInMainWorld('clipboard', {

@@ -22,10 +22,9 @@
 
 import MarkdownEditor from '../common/modules/markdown-editor'
 import CodeMirror from 'codemirror'
-import { IpcRenderer } from 'electron'
 import { defineComponent } from 'vue'
 
-const ipcRenderer: IpcRenderer = (window as any).ipc
+const ipcRenderer = window.ipc
 
 let mdEditor: MarkdownEditor|null = null
 let scrollbarAnnotations = null
@@ -84,14 +83,6 @@ export default defineComponent({
     charCount: {
       type: Number,
       default: 0
-    },
-    target: {
-      type: Object,
-      default: null
-    },
-    firstHeading: {
-      type: String,
-      default: null
     },
     frontmatter: {
       type: Object,

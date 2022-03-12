@@ -129,7 +129,7 @@ export default {
     // Window title
     title: {
       type: String,
-      default: ''
+      default: 'Zettlr'
     },
     // Tabbar tabs
     tabbarTabs: {
@@ -198,7 +198,7 @@ export default {
       // Zettlr looks on other platforms. Please also note that this
       // does not affect the native window chrome.
       platform: process.platform,
-      useNativeAppearance: global.config.get('window.nativeAppearance')
+      useNativeAppearance: window.config.get('window.nativeAppearance')
     }
   },
   computed: {
@@ -353,18 +353,22 @@ export default {
       // adapt the body class
       document.body.classList.remove('darwin', 'win32', 'linux')
       document.body.classList.add(this.platform)
+    },
+    title: function () {
+      document.title = this.title
     }
   },
   created: function () {
     // Oh, we can destructure stuff directly in the method signature?! Uuuuh
     ipcRenderer.on('config-provider', (event, { command, payload }) => {
       if (command === 'update' && payload === 'window.nativeAppearance') {
-        this.useNativeAppearance = global.config.get('window.nativeAppearance')
+        this.useNativeAppearance = window.config.get('window.nativeAppearance')
       }
     })
 
-    // Apply the body class immediately
+    // Apply the body class immediately and also set the title
     document.body.classList.add(this.platform)
+    document.title = this.title
   },
   methods: {
     handleDoubleClick: function (origin) {
@@ -428,12 +432,6 @@ body {
   &:not(.darwin) {
     div#window-content {
       background-color: rgb(235, 235, 235);
-    }
-  }
-
-  &.win32 {
-    div#window-content {
-      padding: 10px;
     }
   }
 
