@@ -64,10 +64,12 @@ function getForegroundColour(c) {
   return (sum > 128) ? 'black' : 'white';
 }
 
-  var headRE = /^((\s{8})*)(@[A-Za-z0-9]+)( .+)$/g
 
   CodeMirror.commands.markdownRenderAtTags = function (cm) {
     let match
+
+    const indentSize = cm.getOption('indentUnit')
+    var headRE = new RegExp(`^((\\s{${indentSize}})*)(@[A-Za-z0-9]+)\\s(.+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -78,7 +80,7 @@ function getForegroundColour(c) {
       headRE.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i)
+      let line = cm.getLine(i).trimEnd()
       if ((match = headRE.exec(line)) == null) {
         continue
       }
@@ -100,25 +102,24 @@ function getForegroundColour(c) {
       }
 
       let wrapper = document.createElement('span')
-      wrapper.textContent = match[1].slice(0, -8);
+      wrapper.textContent = match[1].slice(0, -indentSize);
       let tag = document.createElement('span')
       const name = match[match.length - 2].trim();
-      tag.className = 'at-tag'
-      tag.textContent = name + ' '.repeat(8 - name.length);
-      wrapper.appendChild(tag)
 
       // Choose a colour based in the name
       let int = 0;
       for(let i = 0; i < name.length; i++)
         int += name.charCodeAt(i);
-
       const colour = colourArray[int % colourArray.length];
 
+      tag.className = 'at-tag'
+      tag.textContent = name + ' '.repeat(Math.max(0, indentSize - name.length));
+      tag.style = `color: ${colour} !important;`;
+      wrapper.appendChild(tag)
+
       let rest = document.createElement('span')
-      rest.textContent = match[match.length - 1].trim()
+      rest.textContent = match[match.length - 1].trimEnd()
       rest.className = 'cm-person'
-      //console.log(colour);
-      //rest.style = `background-color: ${colour}; color: ${getForegroundColour(colour)};`;
       wrapper.appendChild(rest)
 
       let textMarker = cm.doc.markText(
@@ -140,10 +141,11 @@ function getForegroundColour(c) {
     }
   }
 
-  var headRE2 = /^((\s{8})*)(\*|\/\/)\s(.*)$/g
-
   CodeMirror.commands.markdownRenderListTags = function (cm) {
     let match
+
+    const indentSize = cm.getOption('indentUnit')
+    var headRE2 = new RegExp(`^((\\s{${indentSize}})*)(\\*|\\/\\/)\\s(.*)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -177,11 +179,14 @@ function getForegroundColour(c) {
 
       let wrapper = document.createElement('span')
       wrapper.textContent = match[1]
-      //wrapper.style = 'margin-left: -1em;'
+      let arrow = document.createElement('span')
+      arrow.textContent = '✱';
+      arrow.style = 'display: inline-block; width: 1em; text-indent: -3px;color: orange;';
+      wrapper.appendChild(arrow);
       let tag = document.createElement('span')
       tag.className = 'branch-tag'
       tag.textContent = match[match.length - 1]
-      tag.style = 'margin-left: 1em;'
+      //tag.style = 'margin-left: 1em;'
       wrapper.appendChild(tag)
 
       let textMarker = cm.markText(
@@ -203,72 +208,11 @@ function getForegroundColour(c) {
     }
   }
 
-  /*var headRE6 = /^((\s{8})*)(\*|\/\/)$/g
-
-  CodeMirror.commands.markdownRenderListEndTags = function (cm) {
-    let match
-
-    // We'll only render the viewport
-    const viewport = cm.getViewport()
-    for (let i = viewport.from; i < viewport.to; i++) {
-      if (cm.getModeAt({ 'line': i, 'ch': 0 }).name !== 'markdown-zkn') continue
-      // Always reset lastIndex property, because test()-ing on regular
-      // expressions advances it.
-      headRE6.lastIndex = 0
-
-      // First get the line and test if the contents contain an @
-      let line = cm.getLine(i)
-      if ((match = headRE6.exec(line)) == null) {
-        continue
-      }
-
-      // Now get the precise beginning of the match and its end
-      let curFrom = cm.getCursor('from')
-      let curTo = { 'line': i, 'ch': match.index + line.length }
-
-      if (curFrom.line === i && curTo.ch >= curFrom.ch && curFrom.ch <= curTo.ch) {
-        // We're directly in the formatting so don't render.
-        continue
-      }
-
-      curFrom = { 'line': i, 'ch': match.index }
-
-      // We can only have one marker at any given position at any given time
-      if (cm.doc.findMarks(curFrom, curTo).length > 0) {
-        continue
-      }
-
-      let wrapper = document.createElement('span');
-      let tag = document.createElement('span')
-
-      tag.className = 'branch-end-tag'
-      tag.textContent = "-------------------------------------------------"
-      wrapper.textContent = match[1];
-      wrapper.appendChild(tag);
-
-      let textMarker = cm.doc.markText(
-        curFrom, curTo,
-        {
-          'clearOnEnter': true,
-          'replacedWith': wrapper,
-          'inclusiveLeft': false,
-          'inclusiveRight': false
-        }
-      )
-
-      wrapper.onclick = (e) => {
-        e.stopPropagation();
-        textMarker.clear()
-        cm.setCursor(cm.coordsChar({ 'left': e.clientX, 'top': e.clientY }))
-        cm.focus()
-      }
-    }
-  }*/
-
-  var headRE3 = /^((\s{8})*)([>$~])( .+)$/g
-
   CodeMirror.commands.markdownRenderActions = function (cm) {
     let match
+
+    const indentSize = cm.getOption('indentUnit')
+    var headRE3 = new RegExp(`^((\\s{${indentSize}})*)([>$~])( .+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -279,7 +223,7 @@ function getForegroundColour(c) {
       headRE3.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i)
+      let line = cm.getLine(i).trimEnd()
       if ((match = headRE3.exec(line)) == null) {
         continue
       }
@@ -350,7 +294,7 @@ function getForegroundColour(c) {
       headRE4.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i)
+      let line = cm.getLine(i).trimEnd()
       if ((match = headRE4.exec(line)) == null) {
         continue
       }
@@ -392,10 +336,11 @@ function getForegroundColour(c) {
     }
   }
 
-  var headRE5 = /^((\s{8})*)([a-zA-Z0-9\.\-\*\(\)\{\}\"\'].+)$/g
-
   CodeMirror.commands.markdownRenderPlayerTags = function (cm) {
     let match
+
+    const indentSize = cm.getOption('indentUnit')
+    var headRE5 = new RegExp(`^((\\s{${indentSize}})*)([a-zA-Z0-9\\.\\-\\*\\(\\)\\{\\}\\"\\'].+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -406,7 +351,7 @@ function getForegroundColour(c) {
       headRE5.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i)
+      let line = cm.getLine(i).trimEnd()
       if ((match = headRE5.exec(line)) == null) {
         continue
       }
@@ -427,11 +372,11 @@ function getForegroundColour(c) {
         continue
       }
 
-      if (!line.startsWith("        "))
+      if (!line.startsWith(' '.repeat(indentSize)))
         continue;
 
       // Check the indent level to determine if it really is a player tag
-      var indent = (line.length - line.trimStart().length) / 8;
+      var indent = (line.length - line.trimStart().length) / indentSize;
       var buffer;
       if (indent > 0) {
         // Figure out the current indentation level to know if this is a speaking character or narration
@@ -439,37 +384,38 @@ function getForegroundColour(c) {
         // Search backwards for a lower-level indentation, or a branch block identifier
         for (let j = i - 1; j > 0; j--) {
           let line2 = cm.getLine(j);
+          let indent2 = (line2.length - line2.trimStart().length) / indentSize
           buffer = cm.getLine(j + 1);
           if (line2.trim() === "")
             continue;
 
           if (line2.trimStart().startsWith("* ") || line2.trimStart().startsWith("// ")) {
             // Indentation is optional for branches. If we hit a branch, check if the first line in it is indented. If not, treat the branch line as nonexistent.
-            if ((line2.length - line2.trimStart().length) / 8 === (buffer.length - buffer.trimStart().length) / 8)
+            if (indent2 === (buffer.length - buffer.trimStart().length) / indentSize)
               continue;
 
-            if ((line2.length - line2.trimStart().length) / 8 === indent - 2)
+            if (indent2 === indent - 2)
               isPlayer = true;
             break;
           }
           else if (line2.trimStart().startsWith("$") && line2.trimEnd().endsWith("?")) {
             // Indentation is optional for conditionals. If we hit a conditional, check if the first line in it is indented. If not, treat the conditional line as nonexistent.
-            if ((line2.length - line2.trimStart().length) / 8 === (buffer.length - buffer.trimStart().length) / 8)
+            if (indent2 === (buffer.length - buffer.trimStart().length) / indentSize)
               continue;
 
-            if ((line2.length - line2.trimStart().length) / 8 === indent - 2)
+            if (indent2 === indent - 2)
               isPlayer = true;
             break;
           }
           else if (line2.trimStart().startsWith("@")) {
-            if ((line2.length - line2.trimStart().length) / 8 === indent)
+            if (indent2 === indent)
               isPlayer = true;
             break;
           }
           else if ((/^(\s{4})*[a-zA-Z0-9\-\*\.\(\)\{\}\"\'][a-zA-Z0-9\-\*\.\s\(\)\{\}\"\']/gi).test(line2)) {
-            if((line2.length - line2.trimStart().length) / 8 === indent)
+            if(indent2 === indent)
               continue;
-            if ((line2.length - line2.trimStart().length) / 8 === indent - 1)
+            if (indent2 === indent - 1)
               isPlayer = true;
             break;
           }
@@ -479,12 +425,12 @@ function getForegroundColour(c) {
           continue;
       }
 
-      let wrapper = document.createElement('span');
+      let wrapper = document.createElement('span')
+      wrapper.textContent = match[1];
       let tag = document.createElement('span')
 
       tag.className = 'player-tag'
       tag.textContent = match[match.length - 1]
-      wrapper.textContent = match[1];
       wrapper.appendChild(tag);
 
       let textMarker = cm.doc.markText(

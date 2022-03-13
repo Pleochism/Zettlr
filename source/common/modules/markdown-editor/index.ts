@@ -85,12 +85,13 @@ export default class MarkdownEditor extends EventEmitter {
    * @param   {HTMLTextAreaElement|string}  anchorElement   The anchor element (either a DOM node or an ID to be used with document.getElementById)
    * @param   {Object}                      [cmOptions={}]  Optional CodeMirror options. If no object is provided, the instance will be instantiated with default options for Zettlr.
    */
-  constructor (anchorElement: HTMLTextAreaElement|string, cmOptions = {}) {
+  constructor (anchorElement: HTMLTextAreaElement|string, cmOptions = { tabSize: 4, indentUnit: 4 }) {
     super() // Set up the event emitter
     this._anchorElement = null
     this._readabilityMode = false
     this._currentDocumentMode = 'multiplex'
     this._cmOptions = getCodeMirrorDefaultOptions(this)
+    //this._cmOptions['tabSize'] = this._cmOptions['indentUnit']
     this._countChars = false
 
     this._md2html = getConverter(window.getCitation)
@@ -113,6 +114,7 @@ export default class MarkdownEditor extends EventEmitter {
     this._instance = fromTextArea(this._anchorElement, this._cmOptions)
 
     // Immediately afterwards, set the new options passed to overwrite
+    cmOptions.tabSize = cmOptions.indentUnit
     this.setOptions(cmOptions)
 
     // Set the special CodeMirror-readonly class on the wrapper, because each
@@ -405,6 +407,9 @@ export default class MarkdownEditor extends EventEmitter {
     for (const name in this._cmOptions) {
       if (name in this._cmOptions) {
         (this._instance as any).setOption(name, this._cmOptions[name])
+        // Keep tabs the same size as the spaces for indenting
+        if (name === 'indentUnit')
+          (this._instance as any).setOption('tabSize', this._cmOptions[name])
       }
     }
 

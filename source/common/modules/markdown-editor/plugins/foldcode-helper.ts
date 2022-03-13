@@ -119,33 +119,36 @@ CodeMirror.registerHelper('fold', 'markdown', function (cm: CodeMirror.Editor, s
   const level = headerLevel(cm, start.line, startLine, cm.getLine(start.line + 1))
   const listIndentation = getListIndentation(startLine)
   const lastLineNo = cm.lastLine()
+  const indentSize = cm.getOption('indentUnit') || 0;
 
   function collapseBranch() {
     let end = start.line
-    const level = (startLine.length - startLine.trimStart().length) / 8
+    const level = (startLine.length - startLine.trimStart().length) / indentSize
+    var lastContent = start.line + 1;
 
     let nextLine = cm.getLine(end + 1)
     while (end < lastLineNo) {
-      const newLevel = (nextLine.length - nextLine.trimStart().length) / 8;
+      const newLevel = (nextLine.length - nextLine.trimStart().length) / indentSize;
       if (nextLine.trim() != "" && newLevel <= level) break
+      if (nextLine.trim() !== "") lastContent = end + 1
       ++end
       nextLine = cm.getLine(end + 1)
     }
 
     return {
       from: CodeMirror.Pos(start.line, startLine.length),
-      to: CodeMirror.Pos(end, cm.getLine(end).length)
+      to: CodeMirror.Pos(lastContent, cm.getLine(lastContent).length)
     }
   }
 
   function collapseConditional() {
     let end = start.line
-    const level = (startLine.length - startLine.trimStart().length) / 8
+    const level = (startLine.length - startLine.trimStart().length) / indentSize
 
     let nextLine = cm.getLine(end + 1)
     let ifLevel = 1;
     while (end < lastLineNo) {
-      const newLevel = (nextLine.length - nextLine.trimStart().length) / 8;
+      const newLevel = (nextLine.length - nextLine.trimStart().length) / indentSize;
       if (nextLine.trimStart() === "$ else")
         if (ifLevel === 1) break;
       if (nextLine.trimStart().startsWith("$ elif"))
