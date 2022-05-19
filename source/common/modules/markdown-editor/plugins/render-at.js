@@ -127,14 +127,16 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': wrapper,
           'inclusiveLeft': false,
-          'inclusiveRight': false
+          'inclusiveRight': true
         }
       )
 
       wrapper.onclick = (e) => {
         e.stopPropagation();
         textMarker.clear()
-        cm.setCursor(cm.coordsChar({ 'left': e.clientX, 'top': e.clientY }))
+		let cc = cm.coordsChar({ 'left': e.clientX, 'top': e.clientY })
+		cc.ch += name.length + 1;
+        cm.setCursor(cc)
         cm.focus()
       }
     }
@@ -194,7 +196,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': wrapper,
           'inclusiveLeft': false,
-          'inclusiveRight': false
+          'inclusiveRight': true
         }
       )
 
@@ -222,7 +224,7 @@ function getForegroundColour(c) {
       headRE3.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i).trimEnd()
+      let line = cm.getLine(i)
       if ((match = headRE3.exec(line)) == null) {
         continue
       }
@@ -266,7 +268,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': tag,
           'inclusiveLeft': false,
-          'inclusiveRight': false
+          'inclusiveRight': true
         }
       )
 
@@ -322,7 +324,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': aTag,
           'inclusiveLeft': false,
-          'inclusiveRight': false
+          'inclusiveRight': true
         }
       )
 
@@ -438,7 +440,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': wrapper,
           'inclusiveLeft': false,
-          'inclusiveRight': false
+          'inclusiveRight': true
         }
       )
 
