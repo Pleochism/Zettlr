@@ -66,7 +66,7 @@ export function getCodeBlockRE (multiline: boolean = false): RegExp {
     // This RegExp matches backtick and tilde code blocks, and indented code
     // blocks.
     return RegExp(
-      /^`{3,}.+?^`{3,}|^[ \t]{4,}.+?$|^~{3,}.+?^~{3,}/gms.source,
+      /^`{3,}.+?^`{3,}|^~{3,}.+?^~{3,}/gms.source,
       'gms'
     )
   }

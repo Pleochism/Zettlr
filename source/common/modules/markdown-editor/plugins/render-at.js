@@ -80,24 +80,23 @@ function getForegroundColour(c) {
       headRE.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i).trimEnd()
+      let line = cm.getLine(i)
       if ((match = headRE.exec(line)) == null) {
         continue
       }
 
       // Now get the precise beginning of the match and its end
-      let curFrom = cm.getCursor('from')
-      let curTo = { 'line': i, 'ch': match.index + match[0].length }
+      let cursor = cm.getCursor('from')
+	  let curFrom = { line: i, ch: match.index }
+      let curTo = { line: i, ch: match.index + match[0].length }
 
-      if (curFrom.line === i && curTo.ch >= curFrom.ch && curFrom.ch <= curTo.ch) {
+      if (cursor.line === curFrom.line && cursor.ch >= curFrom.ch && cursor.ch <= curTo.ch) {
         // We're directly in the formatting so don't render.
         continue
       }
 
-      curFrom = { 'line': i, 'ch': match.index }
-
       // We can only have one marker at any given position at any given time
-      if (cm.doc.findMarks(curFrom, curTo).length > 0) {
+      if (cm.findMarks(curFrom, curTo).length > 0) {
         continue
       }
 
@@ -122,7 +121,7 @@ function getForegroundColour(c) {
       rest.className = 'cm-person'
       wrapper.appendChild(rest)
 
-      let textMarker = cm.doc.markText(
+      let textMarker = cm.markText(
         curFrom, curTo,
         {
           'clearOnEnter': true,
@@ -156,7 +155,7 @@ function getForegroundColour(c) {
       headRE2.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i).trimEnd();
+      let line = cm.getLine(i);
       if ((match = headRE2.exec(line)) == null) {
         continue
       }
@@ -173,7 +172,7 @@ function getForegroundColour(c) {
       curFrom = { 'line': i, 'ch': match.index }
 
       // We can only have one marker at any given position at any given time
-      if (cm.doc.findMarks(curFrom, curTo).length > 0) {
+      if (cm.findMarks(curFrom, curTo).length > 0) {
         continue
       }
 
@@ -240,7 +239,7 @@ function getForegroundColour(c) {
       curFrom = { 'line': i, 'ch': match.index }
 
       // We can only have one marker at any given position at any given time
-      if (cm.doc.findMarks(curFrom, curTo).length > 0) {
+      if (cm.findMarks(curFrom, curTo).length > 0) {
         continue
       }
 
@@ -311,13 +310,13 @@ function getForegroundColour(c) {
       curFrom = { 'line': i, 'ch': match.index }
 
       // We can only have one marker at any given position at any given time
-      if (cm.doc.findMarks(curFrom, curTo).length > 0) {
+      if (cm.findMarks(curFrom, curTo).length > 0) {
         continue
       }
 
       let aTag = document.createElement('hr')
 
-      let textMarker = cm.doc.markText(
+      let textMarker = cm.markText(
         curFrom, curTo,
         {
           'clearOnEnter': true,
@@ -351,7 +350,7 @@ function getForegroundColour(c) {
       headRE5.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i).trimEnd()
+      let line = cm.getLine(i)
       if ((match = headRE5.exec(line)) == null) {
         continue
       }
@@ -368,7 +367,7 @@ function getForegroundColour(c) {
       curFrom = { 'line': i, 'ch': match.index }
 
       // We can only have one marker at any given position at any given time
-      if (cm.doc.findMarks(curFrom, curTo).length > 0) {
+      if (cm.findMarks(curFrom, curTo).length > 0) {
         continue
       }
 
@@ -433,7 +432,7 @@ function getForegroundColour(c) {
       tag.textContent = match[match.length - 1]
       wrapper.appendChild(tag);
 
-      let textMarker = cm.doc.markText(
+      let textMarker = cm.markText(
         curFrom, curTo,
         {
           'clearOnEnter': true,
