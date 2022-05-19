@@ -69,7 +69,7 @@ function getForegroundColour(c) {
     let match
 
     const indentSize = cm.getOption('indentUnit')
-    var headRE = new RegExp(`^((\\s{${indentSize}})*)(@[A-Za-z0-9]+)\\s(.+)$`, "g")
+    var headRE = new RegExp(`^((\\s{${indentSize}})*)(@[A-Za-z0-9]+)\\s([^\\n]+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -146,7 +146,7 @@ function getForegroundColour(c) {
     let match
 
     const indentSize = cm.getOption('indentUnit')
-    var headRE2 = new RegExp(`^((\\s{${indentSize}})*)(\\*|\\/\\/)\\s(.*)$`, "g")
+    var headRE2 = new RegExp(`^((\\s{${indentSize}})*)(\\*|\\/\\/)\\s([^\\n]*)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -213,7 +213,7 @@ function getForegroundColour(c) {
     let match
 
     const indentSize = cm.getOption('indentUnit')
-    var headRE3 = new RegExp(`^((\\s{${indentSize}})*)([>$~])( .+)$`, "g")
+    var headRE3 = new RegExp(`^((\\s{${indentSize}})*)([>$~])( [^\\n]+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -295,7 +295,7 @@ function getForegroundColour(c) {
       headRE4.lastIndex = 0
 
       // First get the line and test if the contents contain an @
-      let line = cm.getLine(i).trimEnd()
+      let line = cm.getLine(i)
       if ((match = headRE4.exec(line)) == null) {
         continue
       }
@@ -341,7 +341,7 @@ function getForegroundColour(c) {
     let match
 
     const indentSize = cm.getOption('indentUnit')
-    var headRE5 = new RegExp(`^((\\s{${indentSize}})*)([a-zA-Z0-9\\.\\-\\*\\(\\)\\{\\}\\"\\'].+)$`, "g")
+    var headRE5 = new RegExp(`^((\\s{${indentSize}})*)([a-zA-Z0-9\\.\\-\\*\\(\\)\\{\\}\\"\\'][^\\n]+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
