@@ -413,7 +413,7 @@ function getForegroundColour(c) {
               isPlayer = true;
             break;
           }
-          else if ((/^(\s{4})*[a-zA-Z0-9\-\*\.\(\)\{\}\"\'][a-zA-Z0-9\-\*\.\s\(\)\{\}\"\']/gi).test(line2)) {
+          else if ((/^(\s{4})*[a-zA-Z0-9\-\*\.\(\)\{\}\"\'\$\!\?][a-zA-Z0-9\-\*\.\s\(\)\{\}\"\'\$\!\?]/gi).test(line2)) {
             if(indent2 === indent)
               continue;
             if (indent2 === indent - 1)
