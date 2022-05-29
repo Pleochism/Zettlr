@@ -399,7 +399,7 @@ function getForegroundColour(c) {
               isPlayer = true;
             break;
           }
-          else if (line2.trimStart().startsWith("$") && line2.trimEnd().endsWith("?")) {
+          else if ((line2.trimStart().startsWith("$") && line2.trimEnd().endsWith("?")) || line2.trim() === "$ else") {
             // Indentation is optional for conditionals. If we hit a conditional, check if the first line in it is indented. If not, treat the conditional line as nonexistent.
             if (indent2 === (buffer.length - buffer.trimStart().length) / indentSize)
               continue;
