@@ -196,7 +196,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': wrapper,
           'inclusiveLeft': false,
-          'inclusiveRight': true
+          'inclusiveRight': false
         }
       )
 
@@ -268,7 +268,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': tag,
           'inclusiveLeft': false,
-          'inclusiveRight': true
+          'inclusiveRight': false
         }
       )
 
@@ -341,7 +341,7 @@ function getForegroundColour(c) {
     let match
 
     const indentSize = cm.getOption('indentUnit')
-    var headRE5 = new RegExp(`^((\\s{${indentSize}})*)([a-zA-Z0-9\\.\\-\\*\\(\\)\\{\\}\\"\\'][^\\n]+)$`, "g")
+    var headRE5 = new RegExp(`^((\\s{${indentSize}})*)([a-zA-Z0-9\\.\\-\\*\\(\\)\\{\\}\\"\\'\\$\\!\\?][^\\n]+)$`, "g")
 
     // We'll only render the viewport
     const viewport = cm.getViewport()
@@ -386,7 +386,8 @@ function getForegroundColour(c) {
         for (let j = i - 1; j > 0; j--) {
           let line2 = cm.getLine(j);
           let indent2 = (line2.length - line2.trimStart().length) / indentSize
-          buffer = cm.getLine(j + 1);
+		  if (cm.getLine(j + 1).trim() !== "")
+          	buffer = cm.getLine(j + 1);
           if (line2.trim() === "")
             continue;
 
