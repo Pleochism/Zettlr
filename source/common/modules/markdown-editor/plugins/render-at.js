@@ -127,7 +127,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': wrapper,
           'inclusiveLeft': false,
-          'inclusiveRight': true
+          'inclusiveRight': false
         }
       )
 
@@ -441,7 +441,7 @@ function getForegroundColour(c) {
           'clearOnEnter': true,
           'replacedWith': wrapper,
           'inclusiveLeft': false,
-          'inclusiveRight': true
+          'inclusiveRight': false
         }
       )
 

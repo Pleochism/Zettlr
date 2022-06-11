@@ -130,6 +130,7 @@ CodeMirror.registerHelper('fold', 'markdown', function (cm: CodeMirror.Editor, s
     while (end < lastLineNo) {
       const newLevel = (nextLine.length - nextLine.trimStart().length) / indentSize;
       if (nextLine.trim() != "" && newLevel <= level) break
+	  if (nextLine.trim() != "" && newLevel === level + 1 && nextLine.trimStart().startsWith("@")) break
       if (nextLine.trim() !== "") lastContent = end + 1
       ++end
       nextLine = cm.getLine(end + 1)
@@ -149,11 +150,11 @@ CodeMirror.registerHelper('fold', 'markdown', function (cm: CodeMirror.Editor, s
     let ifLevel = 1;
     while (end < lastLineNo) {
       const newLevel = (nextLine.length - nextLine.trimStart().length) / indentSize;
-      if (nextLine.trimStart() === "$ else")
+      if (nextLine.trimStart().startsWith("$ else"))
         if (ifLevel === 1) break;
       if (nextLine.trimStart().startsWith("$ elif"))
         if (ifLevel === 1) break;
-      if (nextLine.trimStart() === "$ endif")
+      if (nextLine.trimStart().startsWith("$ endif"))
         ifLevel--;
       else if (nextLine.trimStart().startsWith("$ ") && nextLine.endsWith("?"))
         ifLevel++;
