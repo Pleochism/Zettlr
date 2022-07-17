@@ -385,7 +385,7 @@ function getForegroundColour(c) {
         // Search backwards for a lower-level indentation, or a branch block identifier
         for (let j = i - 1; j > 0; j--) {
           let line2 = cm.getLine(j);
-          let indent2 = (line2.length - line2.trimStart().length) / indentSize
+          let indent2 = (line2.length - line2.trimStart().length) / indentSize;
 		  if (cm.getLine(j + 1).trim() !== "")
           	buffer = cm.getLine(j + 1);
           if (line2.trim() === "")
@@ -409,6 +409,11 @@ function getForegroundColour(c) {
               isPlayer = true;
             break;
           }
+		  else if (line2.trim() === "$ endif") {
+            if (indent2 === indent - 1)
+              isPlayer = true;
+            break;
+		  }
           else if (line2.trimStart().startsWith("@")) {
             if (indent2 === indent)
               isPlayer = true;
