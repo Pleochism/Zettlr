@@ -414,6 +414,11 @@ function getForegroundColour(c) {
               isPlayer = true;
             break;
 		  }
+		  else if (line2.trim() === "$ pass" && indent2 > 0) {
+            if (indent2 === indent)
+              isPlayer = true;
+            break;
+		  }
           else if (line2.trimStart().startsWith("@")) {
             if (indent2 === indent)
               isPlayer = true;
