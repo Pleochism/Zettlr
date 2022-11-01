@@ -116,10 +116,25 @@ function getForegroundColour(c) {
       tag.style = `color: ${colour} !important;`;
       wrapper.appendChild(tag)
 
-      let rest = document.createElement('span')
-      rest.textContent = match[match.length - 1].trimEnd()
-      rest.className = 'cm-person'
-      wrapper.appendChild(rest)
+	  // Check if this line has inline narration
+	  var narrations = match[match.length - 1].trimEnd().split(/(".+?[\.\?!\-]\*?")/);
+
+	  if (narrations.length === 1) {
+		let tag = document.createElement('span')
+
+		tag.className = 'cm-person'
+		tag.textContent = match[match.length - 1].trimEnd()
+		wrapper.appendChild(tag);
+	  }
+	  else {
+		narrations.forEach(x => {
+			let rest = document.createElement('span')
+			rest.textContent = x
+			if (x.startsWith("\""))
+				rest.className = 'cm-person'
+			wrapper.appendChild(rest)
+		});
+	  }
 
       let textMarker = cm.markText(
         curFrom, curTo,
@@ -437,30 +452,45 @@ function getForegroundColour(c) {
           continue;
       }
 
-      let wrapper = document.createElement('span')
-      wrapper.textContent = match[1];
-      let tag = document.createElement('span')
+	  let wrapper = document.createElement('span')
+	  wrapper.textContent = match[1];
 
-      tag.className = 'player-tag'
-      tag.textContent = match[match.length - 1]
-      wrapper.appendChild(tag);
+	  // Check if this line has inline narration
+	  var narrations = match[match.length - 1].trimEnd().split(/(".+?[\.\?!\-]\*?")/);
 
-      let textMarker = cm.markText(
-        curFrom, curTo,
-        {
-          'clearOnEnter': true,
-          'replacedWith': wrapper,
-          'inclusiveLeft': false,
-          'inclusiveRight': false
-        }
-      )
+	  if (narrations.length === 1) {
+		let tag = document.createElement('span')
 
-      wrapper.onclick = (e) => {
-        e.stopPropagation();
-        textMarker.clear()
-        cm.setCursor(cm.coordsChar({ 'left': e.clientX, 'top': e.clientY }))
-        cm.focus()
-      }
+		tag.className = 'player-tag'
+		tag.textContent = match[match.length - 1].trimEnd()
+		wrapper.appendChild(tag);
+	  }
+	  else {
+		narrations.forEach(x => {
+			let tag = document.createElement('span')
+			if (x.startsWith("\""))
+				tag.className = 'player-tag'
+			tag.textContent = x
+			wrapper.appendChild(tag);
+		});
+	  }
+
+	  let textMarker = cm.markText(
+		curFrom, curTo,
+		{
+		'clearOnEnter': true,
+		'replacedWith': wrapper,
+		'inclusiveLeft': false,
+		'inclusiveRight': false
+		}
+	  )
+
+	  wrapper.onclick = (e) => {
+		e.stopPropagation();
+		textMarker.clear()
+		cm.setCursor(cm.coordsChar({ 'left': e.clientX, 'top': e.clientY }))
+		cm.focus()
+	  }
     }
   }
 })
