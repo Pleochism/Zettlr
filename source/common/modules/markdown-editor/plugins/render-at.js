@@ -64,6 +64,8 @@ function getForegroundColour(c) {
   return (sum > 128) ? 'black' : 'white';
 }
 
+const narrationRE = /(".+?(?:[\.\?!\-\*,"]"(?![a-z])|"\-|[a-z]"(?![\s\.\?!\*,"])|\."(?![a-z])))/gi;
+
 
   CodeMirror.commands.markdownRenderAtTags = function (cm) {
     let match
@@ -117,7 +119,7 @@ function getForegroundColour(c) {
       wrapper.appendChild(tag)
 
 	  // Check if this line has inline narration
-	  var narrations = match[match.length - 1].trimEnd().split(/(".+?[\.\?!\-]\*?")/);
+	  var narrations = match[match.length - 1].trimEnd().split(narrationRE);
 
 	  if (narrations.length === 1) {
 		let tag = document.createElement('span')
@@ -128,6 +130,8 @@ function getForegroundColour(c) {
 	  }
 	  else {
 		narrations.forEach(x => {
+			if (!x[0] === `"`)
+				return;
 			let rest = document.createElement('span')
 			rest.textContent = x
 			if (x.startsWith("\""))
@@ -456,7 +460,7 @@ function getForegroundColour(c) {
 	  wrapper.textContent = match[1];
 
 	  // Check if this line has inline narration
-	  var narrations = match[match.length - 1].trimEnd().split(/(".+?[\.\?!\-]\*?")/);
+	  var narrations = match[match.length - 1].trimEnd().split(narrationRE);
 
 	  if (narrations.length === 1) {
 		let tag = document.createElement('span')
@@ -467,6 +471,8 @@ function getForegroundColour(c) {
 	  }
 	  else {
 		narrations.forEach(x => {
+			if (!x[0] === `"`)
+				return;
 			let tag = document.createElement('span')
 			if (x.startsWith("\""))
 				tag.className = 'player-tag'
