@@ -26,7 +26,6 @@ import { app, shell, type BrowserWindow } from 'electron'
  */
 export default function preventNavigation (logger: LogProvider, win: BrowserWindow): void {
   win.webContents.on('will-navigate', (event, url) => {
-    console.log(app.isPackaged)
     // NOTE: app.isPackaged is false if the executable is called electron (instead of Zettlr)
     if (!app.isPackaged) {
       // We are in development, so we must make sure to allow webpack to
@@ -60,11 +59,11 @@ export default function preventNavigation (logger: LogProvider, win: BrowserWind
     } else {
       logger.verbose(
         `[Window Manager] Opening ${url} in default browser.`)
-      //shell.openExternal(url)
-      //  .catch(error => logger.error(
-      //    `[Window Manager] Could not open URL ${url}.`,
-      //    error
-      //  ))
+      shell.openExternal(url)
+        .catch(error => logger.error(
+          `[Window Manager] Could not open URL ${url}.`,
+          error
+        ))
     }
   })
 }
