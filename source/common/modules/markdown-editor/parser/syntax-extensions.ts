@@ -141,7 +141,7 @@ function getHeadingLineHighlighter (): Extension {
  * @return  {Extension}  An extension for the markdown editor
  */
 export const syntaxExtensions = [
-  getCodeHighlighter(),
+  //getCodeHighlighter(),
   getHeadingLineHighlighter(),
   EditorView.baseTheme({
     '.size-header-1': { fontWeight: 'bold' },

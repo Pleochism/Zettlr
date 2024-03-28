@@ -50,7 +50,7 @@ const markdownTheme = HighlightStyle.define([
   { tag: tags.emphasis, class: 'cm-emphasis' },
   { tag: tags.strong, class: 'cm-strong' },
   // Styling for YAML frontmatters
-  { tag: customTags.YAMLFrontmatterStart, class: 'cm-yaml-frontmatter-start' },
+  /*{ tag: customTags.YAMLFrontmatterStart, class: 'cm-yaml-frontmatter-start' },
   { tag: customTags.YAMLFrontmatterEnd, class: 'cm-yaml-frontmatter-end' },
   { tag: customTags.YAMLFrontmatterKey, class: 'yaml-frontmatter-key' },
   { tag: customTags.YAMLFrontmatterString, class: 'yaml-frontmatter-string' },
@@ -59,14 +59,14 @@ const markdownTheme = HighlightStyle.define([
   { tag: customTags.YAMLFrontmatterPlain, class: 'yaml-frontmatter-plain' },
   { tag: customTags.YAMLFrontmatterSeq, class: 'yaml-frontmatter-seq' },
   { tag: customTags.YAMLFrontmatterMap, class: 'yaml-frontmatter-map' },
-  { tag: customTags.YAMLFrontmatterPair, class: 'yaml-frontmatter-pair' },
+  { tag: customTags.YAMLFrontmatterPair, class: 'yaml-frontmatter-pair' },*/
   // Codeblocks
   { tag: tags.labelName, class: 'cm-info-string' }, // CodeInfo (info string)
   { tag: tags.processingInstruction, class: 'cm-code-mark' }, // CodeMark (i.e. ```) but also table delimiters
   { tag: tags.monospace, class: 'cm-monospace' }, // CodeText (i.e. code block content)
   // Tables TODO
   // Footnotes
-  { tag: customTags.Footnote, class: 'footnote' },
+  /*{ tag: customTags.Footnote, class: 'footnote' },
   { tag: customTags.FootnoteRef, class: 'footnote-ref' },
   { tag: customTags.FootnoteRefLabel, class: 'footnote-ref-label' },
   { tag: customTags.FootnoteRefBody, class: 'footnote-ref-body' },
@@ -74,7 +74,14 @@ const markdownTheme = HighlightStyle.define([
   { tag: customTags.ZknTagContent, class: 'cm-zkn-tag' },
   { tag: customTags.PandocAttribute, class: 'pandoc-attribute' },
   { tag: customTags.Highlight, class: 'cm-highlight' },
-  { tag: customTags.HighlightContent, class: 'cm-highlight' }
+  { tag: customTags.HighlightContent, class: 'cm-highlight' },*/
+
+  // RML
+  { tag: customTags.RmlConditional, class: 'rml-conditional' },
+  { tag: customTags.RmlConditionalStart, class: 'rml-conditional-start' },
+  { tag: customTags.RmlConditionalBody, class: 'rml-conditional-body' },
+  { tag: customTags.RmlConditionalBranch, class: 'rml-conditional-branch' },
+  { tag: customTags.RmlConditionalEnd, class: 'rml-conditional-end' },
 ])
 
 const codeTheme = HighlightStyle.define([

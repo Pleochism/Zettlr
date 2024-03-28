@@ -43,5 +43,11 @@ export const customTags = {
   // Pandoc attributes, like: `# Heading or Title {.unnumbered}`
   PandocAttribute: Tag.define(),
   Highlight: Tag.define(),
-  HighlightContent: Tag.define()
+  HighlightContent: Tag.define(),
+
+  RmlConditional: Tag.define(),
+  RmlConditionalStart: Tag.define(),
+  RmlConditionalBranch: Tag.define(),
+  RmlConditionalEnd: Tag.define(),
+  RmlConditionalBody: Tag.define(),
 }

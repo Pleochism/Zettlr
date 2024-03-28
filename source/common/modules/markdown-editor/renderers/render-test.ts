@@ -62,7 +62,6 @@ function hideFormattingCharacters (view: EditorView): RangeSet<Decoration> {
       from,
       to,
       enter (node) {
-        // I want to see the italics and bold
         return
         // Do not hide any characters if a selection is inside here
         if (rangeInSelection(view.state, node.from, node.to)) {
@@ -141,7 +140,7 @@ function hideFormattingCharacters (view: EditorView): RangeSet<Decoration> {
   return Decoration.set(ranges, true)
 }
 
-export const renderEmphasis = ViewPlugin.fromClass(class {
+export const renderTest = ViewPlugin.fromClass(class {
   decorations: DecorationSet
 
   constructor (view: EditorView) {

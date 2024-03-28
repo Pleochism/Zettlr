@@ -79,6 +79,9 @@ import { pandocAttributesParser } from './pandoc-attributes-parser'
 import { highlightParser } from './highlight-parser'
 import { zknTagParser } from './zkn-tag-parser'
 
+// RMD parser
+import { conditionalParser as rmdConditionalParser } from './rml-parser'
+
 const codeLanguages: Array<{ mode: Language|LanguageDescription|null, selectors: string[] }> = [
   {
     // Hear me out: There may be no mermaid syntax highlighting, BUT we need it
@@ -171,12 +174,13 @@ export default function markdownParser (): LanguageSupport {
     extensions: {
       parseBlock: [
         // This BlockParser parses YAML frontmatters
-        frontmatterParser,
+        //frontmatterParser,
         // This BlockParser parses math blocks
-        blockMathParser,
-        footnoteRefParser,
-        gridTableParser,
-        pipeTableParser
+        //blockMathParser,
+        //footnoteRefParser,
+        //gridTableParser,
+        //pipeTableParser,
+        rmdConditionalParser,
       ],
       parseInline: [
         // Add inline parsers that add AST elements for various additional types
@@ -214,7 +218,14 @@ export default function markdownParser (): LanguageSupport {
         { name: 'ZknLinkContent', style: customTags.ZknLinkContent },
         { name: 'ZknTag', style: customTags.ZknTag },
         { name: 'ZknTagContent', style: customTags.ZknTagContent },
-        { name: 'PandocAttribute', style: customTags.PandocAttribute }
+        { name: 'PandocAttribute', style: customTags.PandocAttribute },
+        { name: 'PandocAttribute', style: customTags.PandocAttribute },
+
+        { name: 'RmlConditional', style: customTags.RmlConditional },
+        { name: 'RmlConditionalStart', style: customTags.RmlConditionalStart },
+        { name: 'RmlConditionalBranch', style: customTags.RmlConditionalBranch },
+        { name: 'RmlConditionalEnd', style: customTags.RmlConditionalEnd },
+        { name: 'RmlConditionalBody', style: customTags.RmlConditionalBody }
       ]
     }
   })
