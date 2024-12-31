@@ -16,11 +16,11 @@ import { trans } from '@common/i18n-renderer'
 import showPopupMenu from '@common/modules/window-register/application-menu-helper'
 import type { DirDescriptor } from '@dts/common/fsal'
 import type { AnyMenuItem } from '@dts/renderer/context'
+import type { WindowControlsIPCAPI } from 'source/app/service-providers/windows'
 
 const ipcRenderer = window.ipc
-const clipboard = window.clipboard
 
-export default function displayFileContext (event: MouseEvent, dirObject: DirDescriptor, el: HTMLElement, callback: any): void {
+export function displayDirContext (event: MouseEvent, dirObject: DirDescriptor, el: HTMLElement, callback: (clickedID: string) => void): void {
   const isMac = process.platform === 'darwin'
   const isWin = process.platform === 'win32'
 
@@ -103,8 +103,8 @@ export default function displayFileContext (event: MouseEvent, dirObject: DirDes
       id: 'menu.project_build',
       type: 'normal',
       label: trans('Export Project'),
-      // Only enable if there are formats to export to
-      enabled: dirObject.settings.project.profiles.length > 0
+      // Only enable if there are files and formats to export to
+      enabled: dirObject.settings.project.profiles.length > 0 && dirObject.settings.project.files.length > 0
     })
   }
 
@@ -124,13 +124,13 @@ export default function displayFileContext (event: MouseEvent, dirObject: DirDes
     callback(clickedID) // TODO
     switch (clickedID) {
       case 'menu.copy_path':
-        clipboard.writeText(dirObject.path)
+        navigator.clipboard.writeText(dirObject.path).catch(err => console.error(err))
         break
       case 'gui.attachments_open_dir':
         ipcRenderer.send('window-controls', {
           command: 'show-item-in-folder',
-          payload: dirObject.path
-        })
+          payload: { itemPath: dirObject.path }
+        } as WindowControlsIPCAPI)
         break
       case 'menu.project_build':
         ipcRenderer.send('message', {

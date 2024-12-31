@@ -15,14 +15,10 @@
 import path from 'path'
 import ZettlrCommand from './zettlr-command'
 import sanitize from 'sanitize-filename'
-import { codeFileExtensions, mdFileExtensions } from '@providers/fsal/util/valid-file-extensions'
 import { dialog } from 'electron'
-import { promises as fs } from 'fs'
 import { trans } from '@common/i18n-main'
 import replaceLinks from '@common/util/replace-links'
-
-const ALLOWED_FILETYPES = mdFileExtensions(true)
-const CODE_FILETYPES = codeFileExtensions(true)
+import { hasMdOrCodeExt } from '@common/util/file-extention-checks'
 
 export default class FileRename extends ZettlrCommand {
   constructor (app: any) {
@@ -40,13 +36,17 @@ export default class FileRename extends ZettlrCommand {
     // already exists
     let newName = sanitize(arg.name, { replacement: '-' })
 
-    // If no valid filename is provided, assume .md
-    let ext = path.extname(newName).toLowerCase()
-    if (!ALLOWED_FILETYPES.includes(ext) && !CODE_FILETYPES.includes(ext)) {
+    if (newName === '') {
+      this._app.windows.prompt('Cannot rename file: No valid characters')
+      return
+    }
+
+    // If no valid filename extension is provided, assume .md
+    if (!hasMdOrCodeExt(newName)) {
       newName += '.md'
     }
 
-    const file = this._app.fsal.findFile(arg.path)
+    const file = this._app.workspaces.findFile(arg.path)
     if (file === undefined) {
       return this._app.log.error(`Could not find file ${String(arg.path)}`)
     }
@@ -65,16 +65,25 @@ export default class FileRename extends ZettlrCommand {
       return
     }
 
-    // Test if we are about to override a file
-    const dir = this._app.fsal.findDir(file.dir)
-    let found = dir?.children.find(e => e.name.toLowerCase() === newName.toLowerCase())
-    if (found !== undefined && found.type !== 'directory' && file !== found) {
+    const newPath = path.join(file.dir, newName)
+    const pathsEqualCaseInsensitive = file.path.toLowerCase() === newPath.toLowerCase()
+
+    // Test if we are about to override a file. In the case that the user only
+    // wants to change the capitalization of a file (e.g., testfile -> Testfile)
+    // then case-insensitive file systems (including Windows & macOS) will
+    // report that testfile === Testfile, which means that `pathExists` will
+    // return true. That's where the second check comes in: If the OS reports
+    // that the new path already exists, BUT if we compare it case-insensitive
+    // it's the same, then we know that newPath is essentially oldPath, and we
+    // should not ask the user for overwriting, as this is literally the file
+    // we want to rename. See #5460
+    if (await this._app.fsal.pathExists(newPath) && !pathsEqualCaseInsensitive) {
       // Ask for override
       if (!await this._app.windows.shouldOverwriteFile(newName)) {
         return // No override wanted
       } else {
         // Remove the file to be overwritten prior
-        await this._app.fsal.removeFile(found)
+        await this._app.fsal.removeFile(newPath)
       }
     }
 
@@ -84,8 +93,23 @@ export default class FileRename extends ZettlrCommand {
       const oldName = file.name
       const inboundLinks = this._app.links.retrieveInbound(file.path)
 
+      // Before renaming the file, let's see if it is a root file. Because if it
+      // is, we have to close it first.
+      const { openPaths } = this._app.config.getConfig()
+      const isRoot = openPaths.includes(file.path)
+
+      if (isRoot) {
+        this._app.config.removePath(file.path)
+      }
+
       // Now, rename the file.
-      await this._app.fsal.renameFile(file, newName)
+      await this._app.fsal.rename(file.path, newPath)
+      // Notify the documents provider so it can exchange any files if necessary
+      await this._app.documents.hasMovedFile(file.path, newPath)
+
+      if (isRoot) {
+        this._app.config.addPath(newPath)
+      }
 
       // Finally, let's check if we can update some internal links to that file.
       if (inboundLinks.length > 0) {
@@ -105,10 +129,10 @@ export default class FileRename extends ZettlrCommand {
 
         // So ... update. We'll basically take the rename-tag command as a template.
         for (const file of inboundLinks) {
-          const content = await fs.readFile(file, 'utf-8')
+          const content = await this._app.fsal.readTextFile(file)
           const newContent = replaceLinks(content, oldName, newName)
           if (newContent !== content) {
-            await fs.writeFile(file, newContent, 'utf-8')
+            await this._app.fsal.writeTextFile(file, newContent)
             this._app.log.info(`[Application] Replaced link to ${oldName} with ${newName} in file ${file}`)
           }
         }

@@ -16,11 +16,11 @@ import { trans } from '@common/i18n-renderer'
 import showPopupMenu from '@common/modules/window-register/application-menu-helper'
 import type { CodeFileDescriptor, MDFileDescriptor } from '@dts/common/fsal'
 import type { AnyMenuItem } from '@dts/renderer/context'
+import type { WindowControlsIPCAPI } from 'source/app/service-providers/windows'
 
 const ipcRenderer = window.ipc
-const clipboard = window.clipboard
 
-export default function displayFileContext (event: MouseEvent, fileObject: MDFileDescriptor|CodeFileDescriptor, el: HTMLElement, callback: any): void {
+export function displayFileContext (event: MouseEvent, fileObject: MDFileDescriptor|CodeFileDescriptor, el: HTMLElement, callback: (clickedID: string) => void): void {
   const isMac = process.platform === 'darwin'
   const isWin = process.platform === 'win32'
 
@@ -108,21 +108,21 @@ export default function displayFileContext (event: MouseEvent, fileObject: MDFil
     callback(clickedID) // TODO
     switch (clickedID) {
       case 'menu.copy_filename':
-        clipboard.writeText(fileObject.name)
+        navigator.clipboard.writeText(fileObject.name).catch(err => console.error(err))
         break
       case 'menu.copy_path':
-        clipboard.writeText(fileObject.path)
+        navigator.clipboard.writeText(fileObject.path).catch(err => console.error(err))
         break
       case 'menu.copy_id':
         if (fileObject.type === 'file') {
-          clipboard.writeText(fileObject.id)
+          navigator.clipboard.writeText(fileObject.id).catch(err => console.error(err))
         }
         break
       case 'menu.show_file':
         ipcRenderer.send('window-controls', {
           command: 'show-item-in-folder',
-          payload: fileObject.path
-        })
+          payload: { itemPath: fileObject.path }
+        } as WindowControlsIPCAPI)
         break
     }
   })

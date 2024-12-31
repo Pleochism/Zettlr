@@ -27,10 +27,8 @@ const commonRules: Record<string, any> = {
 
 export const themeBordeauxLight = EditorView.theme({
   ...commonRules,
-  '&': {
-    backgroundColor: '#fffff8'
-  },
   '.cm-scroller': {
+    backgroundColor: '#fffff8',
     color: 'var(--grey-5)',
     fontFamily: 'Inconsolata, monospace'
   },
@@ -63,19 +61,17 @@ export const themeBordeauxLight = EditorView.theme({
 
 export const themeBordeauxDark = EditorView.theme({
   ...commonRules,
-  '&': {
-    backgroundColor: '#002b36',
-    color: '#839496'
-  },
   '.cm-scroller': {
-    color: 'var(--grey-0)',
+    backgroundColor: '#002b36',
+    color: '#839496',
+    // color: 'var(--grey-0)',
     fontFamily: 'Inconsolata, monospace'
   },
   '.cm-comment, .cm-fenced-code, .cm-inline-math': { color: 'var(--grey-0)' },
   '.cm-hr, .cm-yaml-frontmatter-start, .cm-yaml-frontmatter-end': {
     color: primaryColor
   },
-  '.citeproc-citation, .code-block-line-background, .inline-code-background': { backgroundColor: 'var(--grey-7)' },
+  '.citeproc-citation, .code-block-line-background, .inline-code-background': { backgroundColor: '#002024' },
   '.citeproc-citation.error, .mermaid-chart.error': { color: 'var(--red-2)' },
   '.cm-cursor-primary': { background: primaryColor },
   '.cm-cursor-secondary': { background: 'var(--red-2)' },
@@ -91,6 +87,9 @@ export const themeBordeauxDark = EditorView.theme({
   // Copied with my blood from the DOM; the example on the website is wrong.
   '&.cm-focused .cm-scroller .cm-layer.cm-selectionLayer .cm-selectionBackground, ::selection': {
     background: selectionDark
+  },
+  '.cm-highlight': {
+    color: 'black !important',
   },
   '.cm-quote, .cm-link, .cm-strong, .cm-emphasis': { color: '#93a1a1' }
 }, { dark: true })

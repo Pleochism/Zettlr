@@ -16,16 +16,15 @@
  * END HEADER
  */
 
-import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete'
+import { closeBrackets } from '@codemirror/autocomplete'
 import { type Update } from '@codemirror/collab'
-import { defaultKeymap, history, undo, redo, undoSelection, redoSelection } from '@codemirror/commands'
+import { history } from '@codemirror/commands'
 import { bracketMatching, codeFolding, foldGutter, indentOnInput, indentUnit, StreamLanguage } from '@codemirror/language'
 import { stex } from '@codemirror/legacy-modes/mode/stex'
-import { yaml } from '@codemirror/legacy-modes/mode/yaml'
-import { search, searchKeymap } from '@codemirror/search'
-import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state'
+import { yaml } from '@codemirror/lang-yaml'
+import { search } from '@codemirror/search'
+import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import {
-  keymap,
   drawSelection,
   EditorView,
   lineNumbers,
@@ -34,7 +33,6 @@ import {
   type DOMEventHandlers
 } from '@codemirror/view'
 import { autocomplete } from './autocomplete'
-import { customKeymap } from './commands/keymap'
 import { codeSyntaxHighlighter, markdownSyntaxHighlighter } from './theme/syntax'
 import markdownParser from './parser/markdown-parser'
 import { syntaxExtensions } from './parser/syntax-extensions'
@@ -52,19 +50,31 @@ import { type EditorConfiguration, configField } from './util/configuration'
 import { highlightRanges } from './plugins/highlight-ranges'
 import { jsonFolding } from './code-folding/json'
 import { markdownFolding } from './code-folding/markdown'
-import { jsonLanguage, jsonParseLinter } from '@codemirror/lang-json'
+import { json, jsonParseLinter } from '@codemirror/lang-json'
 import { softwrapVisualIndent } from './plugins/visual-indent'
 import { backgroundLayers } from './plugins/code-background'
-import { vim } from '@replit/codemirror-vim'
 import { emacs } from '@replit/codemirror-emacs'
 import { distractionFree } from './plugins/distraction-free'
 import { languageTool } from './linters/language-tool'
 import { statusbar } from './statusbar'
-import { themeManager } from './theme'
 import { renderers } from './renderers'
 import { mdPasteDropHandlers } from './plugins/md-paste-drop-handlers'
 import { footnoteGutter } from './plugins/footnote-gutter'
 import { yamlFrontmatterLint } from './linters/yaml-frontmatter-lint'
+import { darkMode } from './theme/dark-mode'
+import { themeBerlinLight, themeBerlinDark } from './theme/berlin'
+import { themeBielefeldLight, themeBielefeldDark } from './theme/bielefeld'
+import { themeBordeauxLight, themeBordeauxDark } from './theme/bordeaux'
+import { themeFrankfurtLight, themeFrankfurtDark } from './theme/frankfurt'
+import { themeKarlMarxStadtLight, themeKarlMarxStadtDark } from './theme/karl-marx-stadt'
+import { mainOverride } from './theme/main-override'
+import { highlightWhitespace } from './plugins/highlight-whitespace'
+import { tagClasses } from './plugins/tag-classes'
+import { autocompleteTriggerCharacter } from './autocomplete/snippets'
+import { markdownKeymap } from './keymaps/markdown'
+import { codeKeymap } from './keymaps/code'
+import { vimPlugin } from './plugins/vim-mode'
+import { projectInfoField } from './plugins/project-info-field'
 
 /**
  * This interface describes the required properties which the extension sets
@@ -91,6 +101,31 @@ export interface CoreExtensionOptions {
  */
 export const inputModeCompartment = new Compartment()
 
+export function getMainEditorThemes (): Record<EditorConfiguration['theme'], { lightThemes: Extension[], darkThemes: Extension[] }> {
+  return {
+    berlin: {
+      lightThemes: [ mainOverride, themeBerlinLight ],
+      darkThemes: [ mainOverride, themeBerlinDark ]
+    },
+    bielefeld: {
+      lightThemes: [ mainOverride, themeBielefeldLight ],
+      darkThemes: [ mainOverride, themeBielefeldDark ]
+    },
+    bordeaux: {
+      lightThemes: [ mainOverride, themeBordeauxLight ],
+      darkThemes: [ mainOverride, themeBordeauxDark ]
+    },
+    frankfurt: {
+      lightThemes: [ mainOverride, themeFrankfurtLight ],
+      darkThemes: [ mainOverride, themeFrankfurtDark ]
+    },
+    'karl-marx-stadt': {
+      lightThemes: [ mainOverride, themeKarlMarxStadtLight ],
+      darkThemes: [ mainOverride, themeKarlMarxStadtDark ]
+    }
+  }
+}
+
 /**
  * This private function loads a set of core extensions that are required for
  * all Codemirror instances inside of Zettlr regardless of document type. These
@@ -116,7 +151,7 @@ export const inputModeCompartment = new Compartment()
 function getCoreExtensions (options: CoreExtensionOptions): Extension[] {
   const inputMode: Extension[] = []
   if (options.initialConfig.inputMode === 'vim') {
-    inputMode.push(vim())
+    inputMode.push(vimPlugin())
   } else if (options.initialConfig.inputMode === 'emacs') {
     inputMode.push(emacs())
   }
@@ -126,24 +161,13 @@ function getCoreExtensions (options: CoreExtensionOptions): Extension[] {
     autoCloseBracketsConfig.push(closeBrackets())
   }
 
+  const themes = getMainEditorThemes()
+
   return [
     // Both vim and emacs modes need to be included first, before any other
     // keymap.
     inputModeCompartment.of(inputMode),
-    // KEYMAPS
-    keymap.of([
-      ...defaultKeymap, // Minimal default keymap
-      // NOTE: We had to add the history commands here since the default
-      // keybindings were ... unexpected.
-      { key: 'Mod-z', run: undo, preventDefault: true },
-      { key: 'Mod-Shift-z', run: redo, preventDefault: true },
-      { key: 'Mod-u', run: undoSelection, preventDefault: true },
-      { key: 'Alt-u', mac: 'Mod-Shift-u', run: redoSelection, preventDefault: true },
-      ...closeBracketsKeymap, // Binds Backspace to deletion of matching brackets
-      ...searchKeymap // Search commands (Ctrl+F, etc.)
-    ]),
-    softwrapVisualIndent, // Always indent visually
-    themeManager(options),
+    darkMode({ darkMode: options.initialConfig.darkMode, ...themes[options.initialConfig.theme] }),
     // CODE FOLDING
     codeFolding(),
     foldGutter(),
@@ -152,10 +176,11 @@ function getCoreExtensions (options: CoreExtensionOptions): Extension[] {
     // SELECTIONS
     // Overrides the default browser selection drawing, allows styling
     drawSelection({ drawRangeCursor: false, cursorBlinkRate: 1000 }),
+    highlightWhitespace(options.initialConfig.highlightWhitespace),
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),
     // Ensure the cursor never completely sticks to the top or bottom of the editor
-    EditorView.scrollMargins.of(view => { return { top: 30, bottom: 30 } }),
+    EditorView.scrollMargins.of(_view => { return { top: 30, bottom: 30 } }),
     search({ top: true }), // Add a search
     // TAB SIZES/INDENTATION -> Depend on the configuration field
     EditorState.tabSize.from(configField, (val) => val.indentUnit),
@@ -163,12 +188,16 @@ function getCoreExtensions (options: CoreExtensionOptions): Extension[] {
     EditorView.lineWrapping, // Enable line wrapping,
     autoCloseBracketsConfig,
 
+    // Allow configuration of the trigger character
+    autocompleteTriggerCharacter.of(':'),
+    // TODO: autocompleteTriggerCharacter.from(configField, val => val.FINDANAME),
+
     // Add the statusbar
     statusbar,
 
     // Add the configuration and preset it with whatever is in the cached
     // config.
-    configField.init(state => JSON.parse(JSON.stringify(options.initialConfig))),
+    configField.init(_state => JSON.parse(JSON.stringify(options.initialConfig))),
 
     // The updateListener is a custom extension we're using in order to be
     // able to emit events from this main class based on change events.
@@ -203,6 +232,7 @@ function getCoreExtensions (options: CoreExtensionOptions): Extension[] {
 function getGenericCodeExtensions (options: CoreExtensionOptions): Extension[] {
   return [
     ...getCoreExtensions(options),
+    codeKeymap(),
     lineNumbers(),
     bracketMatching(),
     indentOnInput(),
@@ -275,12 +305,11 @@ export function getMarkdownExtensions (options: CoreExtensionOptions): Extension
     // Markdown prior. Additionally, images should get preferential treatment.
     EditorView.domEventHandlers(mdPasteDropHandlers),
     // We need our custom keymaps first
-    Prec.high(keymap.of([
-      ...completionKeymap,
-      ...customKeymap
-    ])),
+    markdownKeymap(),
     // The parser generates the AST for the document ...
-    markdownParser(),
+    markdownParser({
+      zknLinkParserConfig: { format: options.initialConfig.zknLinkFormat }
+    }),
     // ... which can then be styled with a highlighter
     markdownSyntaxHighlighter(),
     syntaxExtensions, // Add our own specific syntax plugin
@@ -292,6 +321,7 @@ export function getMarkdownExtensions (options: CoreExtensionOptions): Extension
     typewriter,
     distractionFree,
     tocField,
+    projectInfoField,
     markdownFolding, // Should be before footnoteGutter
     autocomplete,
     readabilityMode,
@@ -302,6 +332,8 @@ export function getMarkdownExtensions (options: CoreExtensionOptions): Extension
     filePreview,
     backgroundLayers, // Add a background behind inline code and code blocks
     defaultContextMenu, // A default context menu
+    softwrapVisualIndent, // Always indent visually
+    tagClasses(), // Apply a custom class to each tag so that users can style them (#4589)
     EditorView.domEventHandlers(options.domEventsListeners)
   ]
 }
@@ -319,7 +351,7 @@ export function getJSONExtensions (options: CoreExtensionOptions): Extension[] {
   return [
     ...getGenericCodeExtensions(options),
     jsonFolding,
-    jsonLanguage,
+    json(),
     linter(jsonParseLinter())
   ]
 }
@@ -336,7 +368,7 @@ export function getJSONExtensions (options: CoreExtensionOptions): Extension[] {
 export function getYAMLExtensions (options: CoreExtensionOptions): Extension[] {
   return [
     ...getGenericCodeExtensions(options),
-    StreamLanguage.define(yaml)
+    yaml()
   ]
 }
 

@@ -17,9 +17,16 @@ import { syntaxTree } from '@codemirror/language'
 import { configField } from '../util/configuration'
 import makeValidUri from '@common/util/make-valid-uri'
 import { shortenUrlVisually } from '@common/util/shorten-url-visually'
+import { trans } from '@common/i18n-renderer'
+import { pathDirname } from '@common/util/renderer-path-polyfill'
+import _ from 'underscore'
 
-const path = window.path
 const ipcRenderer = window.ipc
+
+function unescape (text: string): string {
+  const value = _.unescape(text)
+  return value.replace(/&#(\d+);/g, (m, p1: string) => String.fromCharCode(parseInt(p1, 10)))
+}
 
 /**
  * Displays a tooltip for URLs and Links across a document
@@ -27,39 +34,56 @@ const ipcRenderer = window.ipc
 export function urlTooltip (view: EditorView, pos: number, side: 1 | -1): Tooltip|null {
   let nodeAt = syntaxTree(view.state).cursorAt(pos, side).node
 
-  // NOTE: If the user has renderLinks set to true, they depend on the widget's
-  // hover state. (This listener will not trigger)
-  if (nodeAt.type.name === 'Link') {
-    const urlNode = nodeAt.getChild('URL')
-    if (urlNode === null) {
-      return null
+  // If the node here is a URL, it's quick, but if not, it must be a Link node
+  // that contains a URL as a child
+  if (nodeAt.type.name !== 'URL') {
+    while (nodeAt.parent !== null && nodeAt.type.name !== 'Link') {
+      nodeAt = nodeAt.parent
     }
-    nodeAt = urlNode
-  } else if (nodeAt.type.name !== 'URL') {
+
+    if (nodeAt.type.name === 'Link') {
+      const urlNode = nodeAt.getChild('URL')
+      if (urlNode !== null) {
+        nodeAt = urlNode
+      }
+    }
+  }
+
+  if (nodeAt.type.name !== 'URL') {
     return null
   }
 
   // We got an URL.
+  const absPath = view.state.field(configField).metadata.path
   const url = view.state.sliceDoc(nodeAt.from, nodeAt.to)
-  const base = path.dirname(view.state.field(configField).metadata.path)
+  const base = pathDirname(absPath)
   const validURI = makeValidUri(url, base)
 
   return {
     pos,
     above: true,
-    create (view) {
+    create (_view) {
       const dom = document.createElement('div')
-      dom.textContent = validURI
+      let shortUrl = shortenUrlVisually(validURI.replace('safe-file://', ''))
+      // Due to the colons in the drive letters on Windows, the pathname will
+      // look like this: /C:/Users/Documents/test.jpg
+      // See: https://github.com/Zettlr/Zettlr/issues/5489
+      if (/^\/[A-Z]:/i.test(shortUrl)) {
+        shortUrl = shortUrl.slice(1)
+      }
+
+      dom.textContent = trans('Fetching link preview…')
       ipcRenderer.invoke('application', { command: 'fetch-link-preview', payload: validURI })
         .then(res => {
           if (res === undefined) {
+            dom.textContent = shortUrl
             return // No link preview available
           }
 
           dom.innerHTML = ''
 
           const h4 = document.createElement('h4')
-          h4.textContent = res.title
+          h4.textContent = unescape(res.title as string)
 
           const imgParaWrapper = document.createElement('div')
           imgParaWrapper.style.margin = '10px 0'
@@ -79,14 +103,14 @@ export function urlTooltip (view: EditorView, pos: number, side: 1 | -1): Toolti
             const para = document.createElement('p')
             para.style.margin = '0'
             para.style.whiteSpace = 'pre-wrap'
-            para.textContent = res.summary
+            para.textContent = unescape(res.summary as string)
             imgParaWrapper.appendChild(para)
           }
 
           const link = document.createElement('span')
           // We can remove the "safe file" as this is a protocol only intended for
           // local files
-          link.textContent = shortenUrlVisually(validURI.replace(/^safe-file:\/\//, ''))
+          link.textContent = shortUrl
           link.style.fontSize = '80%'
           link.style.fontFamily = 'monospace'
           link.style.wordBreak = 'break-word'
@@ -95,10 +119,12 @@ export function urlTooltip (view: EditorView, pos: number, side: 1 | -1): Toolti
           dom.appendChild(imgParaWrapper)
           dom.appendChild(link)
         })
-        .catch(err => { console.error(`Could not generate link preview for URL ${validURI}`, err) })
+        .catch(err => {
+          console.error(`Could not generate link preview for URL ${validURI}`, err)
+        })
       return { dom }
     }
   }
 }
 
-export const urlHover = hoverTooltip(urlTooltip, { hoverTime: 100 })
+export const urlHover = hoverTooltip(urlTooltip, { hoverTime: 1000 })

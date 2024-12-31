@@ -18,9 +18,10 @@ import { type EditorState, type Line } from '@codemirror/state'
 import { configField } from './configuration'
 import { EditorView } from '@codemirror/view'
 import { tocField } from '../plugins/toc-field'
-import { hasMdOrCodeExt } from '@providers/fsal/util/is-md-or-code-file'
+import { hasMdOrCodeExt } from '@common/util/file-extention-checks'
+import { isAbsolutePath, pathDirname } from '@common/util/renderer-path-polyfill'
+import type { DocumentManagerIPCAPI } from 'source/app/service-providers/documents'
 
-const path = window.path
 const ipcRenderer = window.ipc
 
 /**
@@ -61,20 +62,26 @@ export default function (url: string, view: EditorView): void {
   } else {
     const searchParams = new URLSearchParams(window.location.search)
     const windowId = searchParams.get('window_id') as string
-    const base = path.dirname(view.state.field(configField).metadata.path)
+    const base = pathDirname(view.state.field(configField).metadata.path)
     const validURI = makeValidUri(url, base)
 
     // Create a path from the URL by stripping the protocol and decoding any
     // potential encoded characters.
-    const localPath = decodeURIComponent(validURI.replace('safe-file://', ''))
+    let localPath = decodeURIComponent(validURI.replace('safe-file://', ''))
+    // Due to the colons in the drive letters on Windows, the pathname will
+    // look like this: /C:/Users/Documents/test.jpg
+    // See: https://github.com/Zettlr/Zettlr/issues/5489
+    if (/^\/[A-Z]:/i.test(localPath)) {
+      localPath = localPath.slice(1)
+    }
 
     // It's a valid file we can open if it's an absolute path to a Markdown or
     // code file
-    if (validURI.startsWith('safe-file://') && path.isAbsolute(localPath) && hasMdOrCodeExt(localPath)) {
+    if (validURI.startsWith('safe-file://') && isAbsolutePath(localPath) && hasMdOrCodeExt(localPath)) {
       ipcRenderer.invoke('documents-provider', {
         command: 'open-file',
         payload: { path: localPath, newTab: false, windowId }
-      })
+      } as DocumentManagerIPCAPI)
         .catch(e => console.error(e))
     } else {
       // Handled by the event listener in the main process

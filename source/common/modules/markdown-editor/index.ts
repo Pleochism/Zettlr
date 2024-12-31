@@ -30,14 +30,15 @@ import EventEmitter from 'events'
 import { EditorView } from '@codemirror/view'
 import {
   EditorState,
+  Text,
   type Extension,
   type SelectionRange
 } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 
 // Keymaps/Input modes
-import { vim } from '@replit/codemirror-vim'
 import { emacs } from '@replit/codemirror-emacs'
+import { vimPlugin } from './plugins/vim-mode'
 
 import { type ToCEntry, tocField } from './plugins/toc-field'
 import {
@@ -54,7 +55,8 @@ import {
   getMarkdownExtensions,
   getTexExtensions,
   getYAMLExtensions,
-  inputModeCompartment
+  inputModeCompartment,
+  getMainEditorThemes
 } from './editor-extension-sets'
 
 import {
@@ -90,6 +92,10 @@ import {
 } from './plugins/remote-doc'
 import { markdownToAST } from '../markdown-utils'
 import { countField } from './plugins/statistics-fields'
+import type { SyntaxNode } from '@lezer/common'
+import { darkModeEffect } from './theme/dark-mode'
+import { editorMetadataFacet } from './plugins/editor-metadata'
+import { projectInfoUpdateEffect, type ProjectInfo } from './plugins/project-info-field'
 
 export interface DocumentWrapper {
   path: string
@@ -196,6 +202,7 @@ export default class MarkdownEditor extends EventEmitter {
    *
    * @param  {string}                leafId               The ID of the leaf
    *                                                      this editor is part of
+   * @param  {string}                windowId             The window's ID
    * @param  {string}                representedDocument  The absolute path to
    *                                                      the file that will be
    *                                                      loaded in this editor
@@ -205,7 +212,8 @@ export default class MarkdownEditor extends EventEmitter {
    *                                                      IPC authority.
    */
   constructor (
-    leafId: string,
+    readonly leafId: string,
+    readonly windowId: string,
     representedDocument: string,
     authorityAPI: DocumentAuthorityAPI,
     configOverride?: Partial<EditorConfiguration>
@@ -278,9 +286,7 @@ export default class MarkdownEditor extends EventEmitter {
         // both end up in our cache.
         for (const transaction of update.transactions) {
           for (const effect of transaction.effects) {
-            if (effect.is(configUpdateEffect)) {
-              this.onConfigUpdate(effect.value)
-            } else if (effect.is(reloadStateEffect)) {
+            if (effect.is(reloadStateEffect)) {
               // ATTENTION: The document state is out of sync with the document
               // authority, so we must reload it.
               this.reload().catch(err => console.error('Could not reload document state', err))
@@ -307,22 +313,55 @@ export default class MarkdownEditor extends EventEmitter {
           // Both plain URLs as well as Zettelkasten links and tags are
           // implemented on the syntax tree.
           if (nodeAt.type.name === 'URL') {
-            // We found a link!
+            // We found a plain link!
             const url = view.state.sliceDoc(nodeAt.from, nodeAt.to)
-            openMarkdownLink(url, view)
+            if (url.startsWith('[[') && url.endsWith(']]')) {
+              editorInstance.emit('zettelkasten-link', url.substring(2, url.length - 2))
+            } else {
+              openMarkdownLink(url, view)
+            }
             event.preventDefault()
             return true
-          } else if (nodeAt.type.name === 'ZknLinkContent') {
+          } else if ([ 'ZknLinkContent', 'ZknLinkTitle', 'ZknLinkPipe' ].includes(nodeAt.type.name)) {
             // We found a Zettelkasten link!
-            const linkContents = view.state.sliceDoc(nodeAt.from, nodeAt.to)
-            editorInstance.emit('zettelkasten-link', linkContents)
             event.preventDefault()
+            // In these cases, nodeAt.parent is always a ZettelkastenLink
+            const contentNode = nodeAt.parent?.getChild('ZknLinkContent')
+            if (contentNode != null) {
+              const linkContents = view.state.sliceDoc(contentNode.from, contentNode.to)
+              editorInstance.emit('zettelkasten-link', linkContents)
+            }
             return true
           } else if (nodeAt.type.name === 'ZknTagContent') {
             // A tag!
             const tagContents = view.state.sliceDoc(nodeAt.from, nodeAt.to)
             editorInstance.emit('zettelkasten-tag', tagContents)
             event.preventDefault()
+            return true
+          }
+
+          // Lastly, the user may have clicked somewhere in a link. However,
+          // since the link description can take various inline elements, we
+          // have to recursively move up the tree until we find a 'Link' element
+          // or abort if we reach the top
+          let currentNode: SyntaxNode|null = nodeAt
+          while (currentNode !== null && currentNode.name !== 'Link') {
+            currentNode = currentNode.parent
+          }
+
+          if (currentNode !== null) {
+            // We have a link
+            const urlNode = currentNode.getChild('URL')
+            if (urlNode !== null) {
+              const url = view.state.sliceDoc(urlNode.from, urlNode.to)
+              if (url.startsWith('[[') && url.endsWith(']]')) {
+                editorInstance.emit('zettelkasten-link', url.substring(2, url.length - 2))
+              } else {
+                openMarkdownLink(url, view)
+              }
+              event.preventDefault()
+              return true
+            }
           }
         }
       }
@@ -348,12 +387,19 @@ export default class MarkdownEditor extends EventEmitter {
     const { content, type, startVersion } = await this.authority.fetchDoc(this.representedDocument)
 
     // The documents contents have changed, so we must recreate the state
+    const extensions = this._getExtensions(this.representedDocument, type, startVersion)
+    // This particular editor type needs access to the window and leaf IDs
+    extensions.push(editorMetadataFacet.of({ windowId: this.windowId, leafId: this.leafId }))
+
     const state = EditorState.create({
-      doc: content,
-      extensions: this._getExtensions(this.representedDocument, type, startVersion)
+      doc: Text.of(content.split('\n')),
+      extensions
     })
 
     this._instance.setState(state)
+    // Ensure the theme switcher picks the state change up; this somehow doesn't
+    // properly work after the document has been mounted to the DOM.
+    this._instance.dispatch({ effects: configUpdateEffect.of(this.config) })
 
     // Provide the cached databases to the state (can be overridden by the
     // caller afterwards by calling setCompletionDatabase)
@@ -377,6 +423,14 @@ export default class MarkdownEditor extends EventEmitter {
    */
   async reload (): Promise<void> {
     await this.loadDocument()
+  }
+
+  /**
+   * Unmount the editor instance entirely. NOTE: After calling this, DO NO
+   * LONGER USE THIS CLASS INSTANCE! Instantiate it anew!
+   */
+  public unmount (): void {
+    this.instance.destroy()
   }
 
   /**
@@ -471,7 +525,12 @@ export default class MarkdownEditor extends EventEmitter {
     // configuration. However, in case there's no state (initial update), we
     // still need to cache the config here, as the updateListener won't be
     // firing yet.
+
+    // Cache the current config first, and then apply it
+    this.onConfigUpdate(newOptions)
+
     this.config = safeAssign(newOptions, this.config)
+
     this._instance.dispatch({ effects: configUpdateEffect.of(this.config) })
   }
 
@@ -485,19 +544,30 @@ export default class MarkdownEditor extends EventEmitter {
    */
   private onConfigUpdate (newOptions: Partial<EditorConfiguration>): void {
     const inputModeChanged = newOptions.inputMode !== undefined && newOptions.inputMode !== this.config.inputMode
-
-    // Cache the current config first, and then apply it
-    this.config = safeAssign(newOptions, this.config)
+    const darkModeChanged = newOptions.darkMode !== undefined && newOptions.darkMode !== this.config.darkMode
+    const themeChanged = newOptions.theme !== undefined && newOptions.theme !== this.config.theme
 
     // Third: The input mode, if applicable
     if (inputModeChanged) {
-      if (this.config.inputMode === 'emacs') {
+      if (newOptions.inputMode === 'emacs') {
         this._instance.dispatch({ effects: inputModeCompartment.reconfigure(emacs()) })
-      } else if (this.config.inputMode === 'vim') {
-        this._instance.dispatch({ effects: inputModeCompartment.reconfigure(vim()) })
+      } else if (newOptions.inputMode === 'vim') {
+        this._instance.dispatch({ effects: inputModeCompartment.reconfigure(vimPlugin()) })
       } else {
         this._instance.dispatch({ effects: inputModeCompartment.reconfigure([]) })
       }
+    }
+
+    // Fourth: Switch theme, if applicable
+    if (darkModeChanged || themeChanged) {
+      const themes = getMainEditorThemes()
+
+      this._instance.dispatch({
+        effects: darkModeEffect.of({
+          darkMode: newOptions.darkMode,
+          ...themes[newOptions.theme ?? this.config.theme]
+        })
+      })
     }
   }
 
@@ -571,6 +641,15 @@ export default class MarkdownEditor extends EventEmitter {
   }
 
   /**
+   * Sets the project info field of the editor state to the provided value.
+   *
+   * @param   {ProjectInfo|null}  info  The data
+   */
+  set projectInfo (info: ProjectInfo|null) {
+    this._instance.dispatch({ effects: projectInfoUpdateEffect.of(info) })
+  }
+
+  /**
    * Sets an autocomplete database of given type to a new value
    *
    * @param   {String}  type      The type of the database
@@ -579,24 +658,24 @@ export default class MarkdownEditor extends EventEmitter {
   setCompletionDatabase (type: 'tags', database: TagRecord[]): void
   setCompletionDatabase (type: 'citations', database: Array<{ citekey: string, displayText: string }>): void
   setCompletionDatabase (type: 'snippets', database: Array<{ name: string, content: string }>): void
-  setCompletionDatabase (type: 'files', database: Array<{ filename: string, id: string }>): void
+  setCompletionDatabase (type: 'files', database: Array<{ filename: string, displayName: string, id: string }>): void
   setCompletionDatabase (type: string, database: any): void {
     switch (type) {
       case 'tags':
         this.databaseCache.tags = database
-        this._instance.dispatch({ effects: tagsUpdate.of(database) })
+        this._instance.dispatch({ effects: tagsUpdate.of(database as TagRecord[]) })
         break
       case 'citations':
         this.databaseCache.citations = database
-        this._instance.dispatch({ effects: citekeyUpdate.of(database) })
+        this._instance.dispatch({ effects: citekeyUpdate.of(database as Array<{ citekey: string, displayText: string }>) })
         break
       case 'snippets':
         this.databaseCache.snippets = database
-        this._instance.dispatch({ effects: snippetsUpdate.of(database) })
+        this._instance.dispatch({ effects: snippetsUpdate.of(database as Array<{ name: string, content: string }>) })
         break
       case 'files':
         this.databaseCache.files = database
-        this._instance.dispatch({ effects: filesUpdate.of(database) })
+        this._instance.dispatch({ effects: filesUpdate.of(database as Array<{ filename: string, displayName: string, id: string }>) })
         break
     }
   }

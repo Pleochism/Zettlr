@@ -12,7 +12,6 @@
  * END HEADER
  */
 
-import commandExists from 'command-exists'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { spawn } from 'child_process'
@@ -25,9 +24,9 @@ import type { DirDescriptor } from '@dts/common/fsal'
 import { app, dialog } from 'electron'
 import { trans } from '@common/i18n-main'
 import type AssetsProvider from '@providers/assets'
-import type { PandocProfileMetadata } from '@dts/common/assets'
+import { type PandocProfileMetadata } from '@providers/assets'
 import { SUPPORTED_READERS } from '@common/util/pandoc-maps'
-import { hasMarkdownExt } from '@providers/fsal/util/is-md-or-code-file'
+import { hasMarkdownExt } from '@common/util/file-extention-checks'
 
 export default async function makeImport (
   fileList: string[],
@@ -36,17 +35,6 @@ export default async function makeImport (
   errorCallback: null|((filePath: string, errorMessage: string) => void) = null,
   successCallback: null|((filePath: string) => void) = null
 ): Promise<string[]> {
-  // Determine the availability of Pandoc. As the Pandoc path is added to
-  // process.env.PATH during the environment check, this should always work
-  // if a supported Zettlr variant is being used. In other cases (e.g. custom
-  // 32 bit builds) users can manually add a path. In any case, the exporter
-  // requires Pandoc, and if it's not there we fail.
-  try {
-    await commandExists('pandoc')
-  } catch (err) {
-    throw new Error(trans('Pandoc has not been found on this system. Please install Pandoc prior to exporting or importing files.'))
-  }
-
   let files = await checkImportIntegrity(fileList)
   let failedFiles = []
 
@@ -136,10 +124,10 @@ export default async function makeImport (
 
       try {
         await new Promise<void>((resolve, reject) => {
-          pandocProcess.on('message', (message, handle) => {
-            console.log(String(message))
+          pandocProcess.on('message', (message, _handle) => {
+            console.log(message)
           })
-          pandocProcess.on('close', (code, signal) => {
+          pandocProcess.on('close', (code, _signal) => {
             if (code === 0) {
               resolve()
             } else {

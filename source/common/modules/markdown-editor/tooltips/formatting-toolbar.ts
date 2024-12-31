@@ -16,10 +16,12 @@ import { EditorView, showTooltip, type Tooltip } from '@codemirror/view'
 import { type EditorState, StateField } from '@codemirror/state'
 import { applyBold, applyCode, applyComment, applyItalic, insertImage, insertLink } from '../commands/markdown'
 import { trans } from '@common/i18n-renderer'
+import { configField } from '../util/configuration'
 
 function getToolbar (state: EditorState): Tooltip[] {
+  const { showFormattingToolbar } = state.field(configField)
   const mainSel = state.selection.main
-  if (mainSel.empty) {
+  if (mainSel.empty || !showFormattingToolbar) {
     return []
   }
 
@@ -113,7 +115,9 @@ export const formattingToolbar = [
       margin: '0',
       backgroundColor: 'transparent',
       borderRadius: '0',
-      lineHeight: '30px'
+      lineHeight: '30px',
+      padding: '0',
+      width: '30px'
     },
     '&dark .cm-tooltip.cm-formatting-bar button.formatting-toolbar-button': {
       color: 'rgb(200, 200, 200)'

@@ -25,14 +25,10 @@ import * as FSALCodeFile from './fsal-code-file'
 import * as FSALAttachment from './fsal-attachment'
 import type { DirDescriptor, AnyDescriptor, MDFileDescriptor, SortMethod, ProjectSettings } from '@dts/common/fsal'
 import type FSALCache from './fsal-cache'
-import {
-  codeFileExtensions,
-  mdFileExtensions
-} from '@providers/fsal/util/valid-file-extensions'
-import { hasCodeExt, hasMarkdownExt, isMdOrCodeFile } from './util/is-md-or-code-file'
 import { safeDelete } from './util/safe-delete'
 import { getFilesystemMetadata } from './util/get-fs-metadata'
 import type LogProvider from '@providers/log'
+import { hasCodeExt, hasMarkdownExt } from '@common/util/file-extention-checks'
 
 /**
  * Determines what will be written to file (.ztr-directory)
@@ -43,9 +39,6 @@ const SETTINGS_TEMPLATE = {
   icon: null as null|string // Default: no icon
 }
 
-const ALLOWED_CODE_FILES = codeFileExtensions(true)
-const MARKDOWN_FILES = mdFileExtensions(true)
-
 /**
  * Used to insert a default project
  */
@@ -53,7 +46,7 @@ const PROJECT_TEMPLATE: ProjectSettings = {
   // General values that not only pertain to the PDF generation
   title: 'Untitled', // Default project title is the directory's name
   profiles: [], // NOTE: Must correspond to the defaults in ProjectProperties.vue
-  filters: [], // A list of filters (glob patterns) to exclude certain files
+  files: [], // A list of absolute paths to the files to be included, sorted (!)
   cslStyle: '', // A path to an optional CSL style file.
   templates: {
     tex: '', // An optional tex template
@@ -69,7 +62,7 @@ const PROJECT_TEMPLATE: ProjectSettings = {
  */
 function sortChildren (
   dir: DirDescriptor,
-  sorter: (arr: AnyDescriptor[], sortingType?: string) => AnyDescriptor[]
+  sorter: (arr: AnyDescriptor[], sortingType?: SortMethod) => AnyDescriptor[]
 ): void {
   dir.children = sorter(dir.children, dir.settings.sorting)
 }
@@ -136,20 +129,28 @@ async function parseSettings (dir: DirDescriptor): Promise<void> {
 }
 
 /**
- * Reads in a file tree recursively, returning the directory descriptor object.
+ * Reads in a directory, returning a corresponding descriptor object. By default
+ * this function reads in the entire directory tree recursively which may take
+ * some time. If you only need the actual directory descriptor, pass `shallow`
+ * as true to prevent it from recursively parsing the tree.
  *
  * @param   {string}              currentPath  The directory's path
  * @param   {FSALCache}           cache        The FSAL cache object
- * @param   {DirDescriptor|null}  parent       An optional parent
+ * @param   {Function}            parser       A MD file parser
+ * @param   {Function}            sorter       A directory child sorter function
+ * @param   {boolean}             isRoot       Whether this descriptor is a root
+ * @param   {boolean}             shallow      If false, children list will not
+ *                                             be parsed
  *
- * @return  {Promise<DirDescriptor>}           Resolves with the directory descriptor
+ * @return  {Promise<DirDescriptor>}           Resolves with the descriptor
  */
 export async function parse (
   currentPath: string,
   cache: FSALCache,
   parser: (file: MDFileDescriptor, content: string) => void,
-  sorter: (arr: AnyDescriptor[], sortingType?: string) => AnyDescriptor[],
-  isRoot: boolean
+  sorter: (arr: AnyDescriptor[], sortingType?: SortMethod) => AnyDescriptor[],
+  isRoot: boolean,
+  shallow: boolean = false
 ): Promise<DirDescriptor> {
   // Prepopulate
   const dir: DirDescriptor = {
@@ -193,18 +194,23 @@ export async function parse (
       continue // Ignore hidden files
     }
 
+    // The `shallow` flag indicates that the directory should not be parsed
+    // recursively, so we will simply continue here. The reason we do parse the
+    // rest of the list here is that the directory file or git may show up at a
+    // later point.
+    if (shallow) {
+      continue
+    }
+
     if (isDir(absolutePath) && !ignoreDir(absolutePath)) {
       const cDir = await parse(absolutePath, cache, parser, sorter, false)
       dir.children.push(cDir)
-    } else if (isMdOrCodeFile(absolutePath)) {
-      const isCode = ALLOWED_CODE_FILES.includes(path.extname(absolutePath).toLowerCase())
-      if (isCode) {
-        const file = await FSALCodeFile.parse(absolutePath, cache, false)
-        dir.children.push(file)
-      } else {
-        const file = await FSALFile.parse(absolutePath, cache, parser, false)
-        dir.children.push(file)
-      }
+    } else if (hasMarkdownExt(absolutePath)) {
+      const file = await FSALFile.parse(absolutePath, cache, parser, false)
+      dir.children.push(file)
+    } else if (hasCodeExt(absolutePath)) {
+      const file = await FSALCodeFile.parse(absolutePath, cache, false)
+      dir.children.push(file)
     } else if (isFile(absolutePath)) {
       dir.children.push(await FSALAttachment.parse(absolutePath))
     } // Else: Probably a symlink TODO
@@ -247,7 +253,7 @@ export function getDirNotFoundDescriptor (dirPath: string): DirDescriptor {
  * @param   {DirDescriptor}  dirObject  The directory descriptor in question.
  * @param   {any}            settings   A settings object to be assigned
  */
-export async function setSetting (dirObject: DirDescriptor, settings: any): Promise<void> {
+export async function setSetting (dirObject: DirDescriptor, settings: Partial<DirDescriptor['settings']>): Promise<void> {
   dirObject.settings = safeAssign(settings, dirObject.settings)
   await persistSettings(dirObject)
 }
@@ -260,7 +266,7 @@ export async function setSetting (dirObject: DirDescriptor, settings: any): Prom
  */
 export async function sort (
   dirObject: DirDescriptor,
-  sorter: (arr: AnyDescriptor[], sortingType?: string) => AnyDescriptor[],
+  sorter: (arr: AnyDescriptor[], sortingType?: SortMethod) => AnyDescriptor[],
   method?: SortMethod
 ): Promise<void> {
   // If the caller omits the method, it should remain unchanged
@@ -280,7 +286,7 @@ export async function sort (
  * @param   {DirDescriptor}  dirObject   The directory descriptor
  * @param   {any}            properties  Initial properties to set
  */
-export async function makeProject (dirObject: DirDescriptor, properties: any): Promise<void> {
+export async function makeProject (dirObject: DirDescriptor, properties: Partial<ProjectSettings>): Promise<void> {
   dirObject.settings.project = safeAssign(properties, PROJECT_TEMPLATE)
   await persistSettings(dirObject)
 }
@@ -365,25 +371,8 @@ export async function createDirectory (
  * @param   {any}            options    Options, containing a name and content property
  * @param   {FSALCache}      cache      The FSAL cache to cache the resulting file
  */
-export async function createFile (
-  dirObject: DirDescriptor,
-  options: { name: string, content: string, type: 'code'|'file' },
-  cache: FSALCache,
-  parser: (file: MDFileDescriptor, content: string) => void,
-  sorter: (arr: AnyDescriptor[], sortingType?: string) => AnyDescriptor[]
-): Promise<void> {
-  const filename = options.name
-  const content = options.content
-  const fullPath = path.join(dirObject.path, filename)
-  await fs.writeFile(fullPath, content)
-  if (hasCodeExt(fullPath)) {
-    const file = await FSALCodeFile.parse(fullPath, cache, false)
-    dirObject.children.push(file)
-  } else {
-    const file = await FSALFile.parse(fullPath, cache, parser, false)
-    dirObject.children.push(file)
-  }
-  sortChildren(dirObject, sorter)
+export async function createFile (filePath: string, content: string): Promise<void> {
+  await fs.writeFile(filePath, content)
 }
 
 /**
@@ -521,9 +510,9 @@ export async function addChild (
 ): Promise<void> {
   if (isDir(childPath)) {
     dirObject.children.push(await parse(childPath, cache, parser, sorter, false))
-  } else if (ALLOWED_CODE_FILES.includes(path.extname(childPath))) {
+  } else if (hasCodeExt(childPath)) {
     dirObject.children.push(await FSALCodeFile.parse(childPath, cache, false))
-  } else if (MARKDOWN_FILES.includes(path.extname(childPath))) {
+  } else if (hasMarkdownExt(childPath)) {
     dirObject.children.push(await FSALFile.parse(childPath, cache, parser, false))
   }
   sortChildren(dirObject, sorter)
