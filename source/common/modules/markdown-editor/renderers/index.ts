@@ -24,8 +24,8 @@ import { renderMermaid } from './render-mermaid'
 import { renderTables } from './render-tables'
 import { renderIframes } from './render-iframes'
 import { renderEmphasis } from './render-emphasis'
-import { renderTest } from './render-test'
 import { configField, type EditorConfiguration } from '../util/configuration'
+import { renderCharacters, renderPlayer } from './render-rml'
 
 const renderCompartment = new Compartment()
 
@@ -41,7 +41,7 @@ const transactionExtender = EditorState.transactionExtender.from(configField, co
   if (config.renderIframes) ext.push(renderIframes)
   if (config.renderEmphasis) ext.push(renderEmphasis)
 
-  ext.push(renderTest)
+  ext.push(renderCharacters, renderPlayer)
 
   const currentState = renderCompartment.get(transaction.state) as Extension[]|undefined
   if (currentState === undefined) {
@@ -76,5 +76,8 @@ export function renderers (config?: Partial<EditorConfiguration>): Extension {
   if (config?.renderTables === true) ext.push(renderTables)
   if (config?.renderIframes === true) ext.push(renderIframes)
   if (config?.renderEmphasis === true) ext.push(renderEmphasis)
+
+  ext.push(renderCharacters, renderPlayer)
+
   return [ transactionExtender, renderCompartment.of(ext) ]
 }

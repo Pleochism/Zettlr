@@ -31,8 +31,6 @@ const markdownTheme = HighlightStyle.define([
   { tag: tags.blockComment, class: 'cm-block-comment' },
   { tag: tags.bool, class: 'cm-bool' },
   { tag: tags.brace, class: 'cm-brace' },
-  { tag: tags.emphasis, class: 'cm-emphasis' },
-  { tag: tags.strong, class: 'cm-strong' },
   { tag: tags.heading, class: 'cm-heading' },
   { tag: tags.heading1, class: 'cm-header-1' },
   { tag: tags.heading2, class: 'cm-header-2' },
@@ -47,17 +45,15 @@ const markdownTheme = HighlightStyle.define([
   { tag: tags.quote, class: 'cm-quote' },
   { tag: tags.list, class: 'cm-list' },
   { tag: tags.monospace, class: 'cm-fenced-code' },
-  { tag: tags.emphasis, class: 'cm-emphasis' },
-  { tag: tags.strong, class: 'cm-strong' },
   // Styling for YAML frontmatters
-  { tag: customTags.YAMLFrontmatter, class: 'cm-yaml-frontmatter' },
-  { tag: customTags.YAMLFrontmatterStart, class: 'cm-yaml-frontmatter-start' },
-  { tag: customTags.YAMLFrontmatterEnd, class: 'cm-yaml-frontmatter-end' },
+  //{ tag: customTags.YAMLFrontmatter, class: 'cm-yaml-frontmatter' },
+  //{ tag: customTags.YAMLFrontmatterStart, class: 'cm-yaml-frontmatter-start' },
+  //{ tag: customTags.YAMLFrontmatterEnd, class: 'cm-yaml-frontmatter-end' },
+  // NOTE: Changes here must be reflected in util/custom-tags.ts and parser/markdown-parser.ts
   // Codeblocks
   { tag: tags.labelName, class: 'cm-info-string' }, // CodeInfo (info string)
   { tag: tags.processingInstruction, class: 'cm-code-mark' }, // CodeMark (i.e. ```) but also table delimiters
   { tag: tags.monospace, class: 'cm-monospace' }, // CodeText (i.e. code block content)
-  // NOTE: Changes here must be reflected in util/custom-tags.ts and parser/markdown-parser.ts
   // Tables TODO
   // Footnotes
   /*{ tag: customTags.Footnote, class: 'footnote' },
@@ -66,18 +62,27 @@ const markdownTheme = HighlightStyle.define([
   { tag: customTags.FootnoteRefBody, class: 'footnote-ref-body' },
   { tag: customTags.ZknLinkContent, class: 'cm-zkn-link' },
   { tag: customTags.ZknTagContent, class: 'cm-zkn-tag' },
-  { tag: customTags.PandocAttribute, class: 'pandoc-attribute' },
+  { tag: customTags.PandocAttribute, class: 'pandoc-attribute' },*/
   { tag: customTags.Highlight, class: 'cm-highlight' },
   { tag: customTags.HighlightContent, class: 'cm-highlight' },
   { tag: customTags.HighlightMark, class: 'cm-highlight cm-highlight-mark' },
-  { tag: customTags.HighlightContent, class: 'cm-highlight' }*/
+  { tag: customTags.HighlightContent, class: 'cm-highlight' },
 
   // RML
-  { tag: customTags.RmlConditional, class: 'rml-conditional' },
   { tag: customTags.RmlConditionalStart, class: 'rml-conditional-start' },
-  { tag: customTags.RmlConditionalBody, class: 'rml-conditional-body' },
   { tag: customTags.RmlConditionalBranch, class: 'rml-conditional-branch' },
-  { tag: customTags.RmlConditionalEnd, class: 'rml-conditional-end' },
+  { tag: customTags.RmlPlayer, class: 'rml-player' },
+  { tag: customTags.RmlPlayerName, class: 'rml-player-name' },
+  { tag: customTags.RmlPlayerText, class: 'rml-player-text' },
+  { tag: customTags.RmlPlayerTextDialogue, class: 'rml-player-text-dialogue' },
+  { tag: customTags.RmlCharacter, class: 'rml-character' },
+  { tag: customTags.RmlCharacterName, class: 'rml-character-name' },
+  { tag: customTags.RmlCharacterText, class: 'rml-character-text' },
+  { tag: customTags.RmlCharacterTextDialogue, class: 'rml-character-text-dialogue' },
+
+  // Emphasis
+  { tag: tags.emphasis, class: 'cm-emphasis' },
+  { tag: tags.strong, class: 'cm-strong' },
 ])
 
 const codeTheme = HighlightStyle.define([
@@ -147,7 +152,9 @@ const codeTheme = HighlightStyle.define([
 ])
 
 export function markdownSyntaxHighlighter (): Extension {
-  return [ syntaxHighlighting(markdownTheme), syntaxHighlighting(codeTheme) ]
+  return [ syntaxHighlighting(markdownTheme),
+    syntaxHighlighting(codeTheme)
+  ]
 }
 
 export function codeSyntaxHighlighter (): Extension {

@@ -65,8 +65,6 @@ function hideFormattingCharacters (view: EditorView): RangeSet<Decoration> {
       from,
       to,
       enter (node) {
-        // I want to see the italics and bold
-        return
         // Do not hide any characters if a selection is inside here
         if (rangeInSelection(view.state, node.from, node.to)) {
           return

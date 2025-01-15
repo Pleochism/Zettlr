@@ -45,9 +45,14 @@ export const customTags = {
   HighlightMark: Tag.define(),
   HighlightContent: Tag.define(),
 
-  RmlConditional: Tag.define(),
   RmlConditionalStart: Tag.define(),
   RmlConditionalBranch: Tag.define(),
-  RmlConditionalEnd: Tag.define(),
-  RmlConditionalBody: Tag.define(),
+  RmlPlayer: Tag.define(),
+  RmlPlayerName: Tag.define(),
+  RmlPlayerText: Tag.define(),
+  RmlPlayerTextDialogue: Tag.define(),
+  RmlCharacter: Tag.define(),
+  RmlCharacterName: Tag.define(),
+  RmlCharacterText: Tag.define(),
+  RmlCharacterTextDialogue: Tag.define()
 }

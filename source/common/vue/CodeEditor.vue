@@ -84,7 +84,7 @@ function getExtensions (mode: 'css'|'yaml'|'markdown-snippets'): Extension[] {
     closeBrackets(),
     bracketMatching(),
     indentOnInput(),
-    codeSyntaxHighlighter(), // This comes from the main editor component
+    //codeSyntaxHighlighter(), // This comes from the main editor component
     darkMode({ darkMode: configStore.config.darkMode }),
     plainLinkHighlighter,
     EditorView.updateListener.of((update) => {

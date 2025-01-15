@@ -236,7 +236,7 @@ function getGenericCodeExtensions (options: CoreExtensionOptions): Extension[] {
     lineNumbers(),
     bracketMatching(),
     indentOnInput(),
-    codeSyntaxHighlighter()
+    //codeSyntaxHighlighter()
   ]
 }
 

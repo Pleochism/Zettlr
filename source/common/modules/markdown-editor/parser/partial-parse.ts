@@ -13,7 +13,7 @@
  * END HEADER
  */
 
-import { type Parser, Tree } from '@lezer/common'
+import { type Parser, SyntaxNode, Tree } from '@lezer/common'
 import { type BlockContext, type InlineContext, type Element } from '@lezer/markdown'
 
 /**
@@ -39,6 +39,7 @@ export function partialParse (ctx: BlockContext|InlineContext, parser: Parser, t
   // a parser expects that it needs to parse a full document. However, a child
   // `Document` element may or may not cause problems so we take it off its
   // root here.
+
   let treeElem = ctx.elt(innerTree, offset)
   const firstChild = innerTree.children[0]
   if (firstChild instanceof Tree) {

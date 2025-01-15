@@ -10,98 +10,140 @@
  */
 
 import { type InlineParser, type BlockParser } from '@lezer/markdown'
-import { partialParse } from './partial-parse'
 
-// TODO: Docs for this: https://github.com/lezer-parser/markdown#user-content-blockparser
-export const conditionalEndParser: InlineParser = {
-  // This parser should only match inline footnotes
-  name: 'rmd-conditional-end',
-  //before: 'Link', // [^1] will otherwise be detected as a link
+export const conditionalStartParser: InlineParser = {
+  name: 'rml-conditional-start',
   parse (ctx, next, pos) {
-    if (next !== 91 && next !== 94) { // [, ^
+    if (next !== 105) { // i
       return -1
     }
 
     const relativePosition = pos - ctx.offset
-    // Matches [^identifier] (alternative 1) and ^[inline] (alternative 2)
-    const match = /\[\^[^\s]+?\]|\^\[.+?\]/.exec(ctx.text.slice(relativePosition))
+    // Matches if...:
+    const match = /(if .+:)/.exec(ctx.text.slice(relativePosition))
 
     if (match === null || match.index > 0) {
       return -1
     }
 
     // At this point we have a footnote and it's at the current pos
-    return ctx.addElement(ctx.elt('Footnote', pos, pos + match[0].length))
+    return ctx.addElement(ctx.elt('RmlConditionalStart', pos, pos + match[0].length))
   }
 }
 
-export const conditionalParser: BlockParser = {
-  name: 'rml-conditional',
-  parse (ctx, line) {
-    const match = /^(\s*)(if .+:)$/.exec(line.text)
-    if (match === null) {
-      return false
+export const conditionalBranchParser: InlineParser = {
+  name: 'rml-conditional-branch',
+  parse (ctx, next, pos) {
+    if (next !== 101) { // e
+      return -1
     }
 
-    const refFrom = ctx.lineStart
-    const indentSize = match[0].length
-    const indent = " ".repeat(indentSize)
+    const relativePosition = pos - ctx.offset
 
-    const label = ctx.elt('RmlConditionalStart', refFrom, ctx.lineStart + match[0].length + match[1].length)
+    // Matches if...:
+    const match = /(elif .+:)/.exec(ctx.text.slice(relativePosition))
 
-    let from = ctx.lineStart + match[0].length + match[1].length
-    let to = ctx.lineStart + line.text.length + 1
-
-    const elems = [label]
-    const conditionalBody: string[] = [line.text.slice(match[0].length + match[1].length)]
-
-    // Everything at least indented by 4 spaces OR empty lines AND not another conditional line at the same indentation
-    // belongs to this conditional
-    while (ctx.nextLine() && line.text !== `${indent}endif:` && new RegExp(`^\\s{${indent},}|^\\s*$`).test(line.text)) {
-      if (line.text.startsWith(`${indent}elif `)) {
-        // We're starting a new block, save the previous one
-        const treeElem = partialParse(ctx, ctx.parser, conditionalBody.join('\n'), from)
-        const body = ctx.elt('RmlConditionalBody', from, to, [treeElem])
-        elems.push(body)
-        conditionalBody.length = 0
-        const elif = ctx.elt('RmlConditionalBranch', ctx.lineStart, ctx.lineStart + line.text.length)
-        elems.push(elif)
-        from = ctx.lineStart + line.text.length
-        to = ctx.lineStart + line.text.length
-      }
-      else {
-        conditionalBody.push(line.text)
-        to += line.text.length
-      }
+    if (match === null || match.index > 0) {
+      return -1
     }
 
-    // Remove trailing empty lines from the body itself
-    //let bodyTo = to
-    //while (conditionalBody.length > 0 && conditionalBody[conditionalBody.length - 1].trim() === '') {
-    //  const lastline = conditionalBody.pop() as string
-    //  bodyTo = bodyTo - lastline.length - 1
-    //}
+    // At this point we have a footnote and it's at the current pos
+    return ctx.addElement(ctx.elt('RmlConditionalBranch', pos, pos + match[0].length))
+  }
+}
 
-    // Since footnotes can be empty, the above while loop will substract one too
-    // much from empty footnotes (so that bodyTo = from - 1). Here we correct
-    // for that.
-    //if (bodyTo < from) {
-    //  bodyTo = from
-    //}
-
-    const treeElem = partialParse(ctx, ctx.parser, conditionalBody.join('\n'), from)
-    const body = ctx.elt('RmlConditionalBody', from, to, [treeElem])
-    elems.push(body)
-
-    // This will be the endif
-    if (line.text.startsWith(`${indent}endif:`)) {
-      const endif = ctx.elt('RmlConditionalEnd', ctx.lineStart, ctx.lineStart + line.text.length)
-      elems.push(endif)
+export const playerParser: InlineParser = {
+  name: 'rml-player',
+  parse (ctx, next, pos) {
+    if (next !== 46) { // .
+      return -1
     }
 
-    const wrapper = ctx.elt('RmlConditional', refFrom, ctx.lineStart + line.text.length, elems)
-    ctx.addElement(wrapper)
+    const relativePosition = pos - ctx.offset
 
-    return true
+    // Check that there's nothing but whitespace before this and the previous newline
+    for (let i = relativePosition - 1; i >= 0; i--) {
+      if (ctx.text[i] === '\n')
+        break
+      if (ctx.text[i] !== '\t' && ctx.text[i] !== ' ')
+        return -1
+    }
+
+    // Matches . ...:
+    const match = /^\s*\. (.+)/.exec(ctx.text.slice(relativePosition))
+
+    if (match === null || match.index > 0) {
+      return -1
+    }
+
+    ctx.addElement(ctx.elt('RmlPlayerName', pos, pos + 2))
+
+    // Check for any dialogue segments and flag those as well
+    const narrationRE = /(".+?(?:[\.\?!\-\*,"]"(?![a-z])|"\-|[a-z]"(?![\s\.\?!\*,"])|\."(?![a-z])))/gi
+
+    const narrations = match[match.length - 1].split(narrationRE)
+    if (narrations.length === 1) {
+      ctx.addElement(ctx.elt('RmlPlayerTextDialogue', pos + 2, pos + 1 + match[0].length))
+    } else {
+      let offset = 2
+      narrations.forEach(x => {
+        let type = 'RmlPlayerText'
+        if (x.startsWith('"'))
+          type = 'RmlPlayerTextDialogue'
+        ctx.addElement(ctx.elt(type, pos + offset, pos + offset + x.length))
+        offset += x.length
+      })
+    }
+
+    return ctx.addElement(ctx.elt('RmlPlayer', pos, pos + 1 + match[0].length))
+  }
+}
+
+export const characterParser: InlineParser = {
+  name: 'rml-character',
+  parse (ctx, next, pos) {
+    if (next !== 64) { // @
+      return -1
+    }
+
+    const relativePosition = pos - ctx.offset
+
+    // Check that there's nothing but whitespace before this and the previous newline
+    for (let i = relativePosition - 1; i >= 0; i--) {
+      if (ctx.text[i] === '\n')
+        break
+      if (ctx.text[i] !== '\t' && ctx.text[i] !== ' ')
+        return -1
+    }
+
+    // Matches . ...:
+    const match = /\s*(@[a-zA-Z]+) (.+)/.exec(ctx.text.slice(relativePosition))
+
+    if (match === null || match.index > 0) {
+      return -1
+    }
+
+    console.log(pos, ctx.offset, match[0])
+
+    ctx.addElement(ctx.elt('RmlCharacterName', pos, pos + match[1].length))
+
+    // Check for any dialogue segments and flag those as well
+    const narrationRE = /(".+?(?:[\.\?!\-\*,"]"(?![a-z])|"\-|[a-z]"(?![\s\.\?!\*,"])|\."(?![a-z])))/gi
+
+    const narrations = match[match.length - 1].split(narrationRE)
+    if (narrations.length === 1) {
+      ctx.addElement(ctx.elt('RmlCharacterTextDialogue', pos + 1 + match[1].length, pos + 1 + match[0].length))
+    } else {
+      let offset = 1 + match[1].length
+      narrations.forEach(x => {
+        let type = 'RmlCharacterText'
+        if (x.startsWith('"'))
+          type = 'RmlCharacterTextDialogue'
+        ctx.addElement(ctx.elt(type, pos + offset, pos + offset + x.length))
+        offset += x.length
+      })
+    }
+
+    return ctx.addElement(ctx.elt('RmlCharacter', pos, pos + match[0].length))
   }
 }

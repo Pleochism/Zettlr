@@ -80,7 +80,7 @@ import { highlightParser } from './highlight-parser'
 import { zknTagParser } from './zkn-tag-parser'
 
 // RMD parser
-import { conditionalParser as rmdConditionalParser } from './rml-parser'
+import { conditionalStartParser, conditionalBranchParser, playerParser, characterParser } from './rml-parser'
 
 const codeLanguages: Array<{ mode: Language|LanguageDescription|null, selectors: string[] }> = [
   {
@@ -183,7 +183,7 @@ export default function markdownParser (config?: MarkdownParserConfig): Language
       // MarkdownConfig only accepts one parse, I could either add additional
       // logic to a generalized parser, or start passing additional config
       // options here, since "extensions" also takes an array.
-      wrap: yamlCodeParse(),
+      //wrap: yamlCodeParse(),
       parseBlock: [
         // This BlockParser parses YAML frontmatters
         //frontmatterParser,
@@ -192,33 +192,37 @@ export default function markdownParser (config?: MarkdownParserConfig): Language
         //footnoteRefParser,
         //gridTableParser,
         //pipeTableParser,
-        rmdConditionalParser,
+        //rmdConditionalParser,
       ],
       parseInline: [
         // Add inline parsers that add AST elements for various additional types
-        inlineMathParser,
-        footnoteParser,
-        citationParser,
+        //inlineMathParser,
+        //footnoteParser,
+        //citationParser,
         sloppyParser,
-        zknLinkParser(config?.zknLinkParserConfig),
-        zknTagParser,
-        pandocAttributesParser,
-        highlightParser
+        //zknLinkParser(config?.zknLinkParserConfig),
+        //zknTagParser,
+        //pandocAttributesParser,
+        highlightParser,
+        playerParser,
+        characterParser,
+        conditionalStartParser,
+        conditionalBranchParser,
       ],
       // We have to notify the markdown parser about the additional Node Types
       // that the YAML block parser utilizes
       // NOTE: Changes here must be reflected in util/custom-tags.ts and theme/syntax.ts!
       defineNodes: [
-        { name: 'YAMLFrontmatter' },
+        /*{ name: 'YAMLFrontmatter' },
         { name: 'YAMLFrontmatterStart', style: customTags.YAMLFrontmatterStart },
         { name: 'YAMLFrontmatterEnd', style: customTags.YAMLFrontmatterEnd },
-        { name: 'Citation', style: customTags.Citation },
+        { name: 'Citation', style: customTags.Citation },*/
         { name: 'HighlightMark', style: customTags.HighlightMark },
         // NOTE: The convention {TagName}/... means that the corresponding styles
         // from the syntax theme get assigned to all child nodes that are contained
         // within this node as well. The default is to only style otherwise "empty"
         // spans of plain text.
-        { name: 'HighlightContent', style: { 'HighlightContent/...': customTags.HighlightContent } },
+        /*{ name: 'HighlightContent', style: { 'HighlightContent/...': customTags.HighlightContent } },
         { name: 'Footnote', style: customTags.Footnote },
         { name: 'FootnoteRef', style: customTags.FootnoteRef },
         { name: 'FootnoteRefLabel', style: customTags.FootnoteRefLabel },
@@ -230,13 +234,18 @@ export default function markdownParser (config?: MarkdownParserConfig): Language
         { name: 'ZknTag', style: customTags.ZknTag },
         { name: 'ZknTagContent', style: customTags.ZknTagContent },
         { name: 'PandocAttribute', style: customTags.PandocAttribute },
-        { name: 'PandocAttribute', style: customTags.PandocAttribute },
+        { name: 'PandocAttribute', style: customTags.PandocAttribute },*/
 
-        { name: 'RmlConditional', style: customTags.RmlConditional },
         { name: 'RmlConditionalStart', style: customTags.RmlConditionalStart },
         { name: 'RmlConditionalBranch', style: customTags.RmlConditionalBranch },
-        { name: 'RmlConditionalEnd', style: customTags.RmlConditionalEnd },
-        { name: 'RmlConditionalBody', style: customTags.RmlConditionalBody }
+        { name: 'RmlPlayer', style: customTags.RmlPlayer },
+        { name: 'RmlPlayerName', style: customTags.RmlPlayerName },
+        { name: 'RmlPlayerText', style: customTags.RmlPlayerText },
+        { name: 'RmlPlayerTextDialogue', style: customTags.RmlPlayerTextDialogue },
+        { name: 'RmlCharacter', style: customTags.RmlCharacter },
+        { name: 'RmlCharacterName', style: customTags.RmlCharacterName },
+        { name: 'RmlCharacterText', style: customTags.RmlCharacterText },
+        { name: 'RmlCharacterTextDialogue', style: customTags.RmlCharacterTextDialogue }
       ]
     }
   })
