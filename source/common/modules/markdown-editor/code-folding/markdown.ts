@@ -68,3 +68,74 @@ export const markdownFolding = foldService.of((state, lineStart, _lineEnd) => {
     return null
   }
 })
+
+export const conditionalFolding = foldService.of((state, lineStart, _lineEnd) => {
+  let { node } = syntaxTree(state).cursorAt(lineStart, 1)
+  //const nestedCond = (node.type.name === 'Paragraph' && !!node.firstChild && node.firstChild === node.lastChild && node.firstChild.node.type.name === 'RmlConditionalStart')
+  if (node.from < lineStart) {
+    return null // The node doesn't start on this line
+  } else if (
+    node.type.name === 'RmlConditionalStart' || node.type.name === 'RmlConditionalBranch'
+  ) {
+    const doc = state.doc
+    const startLine = doc.lineAt(lineStart) // Get the start line
+    const startIndent = startLine.text.search(/\S|$/) // First non-space character
+    const totalLines = doc.lines
+
+    // If the line is empty or doesn't have significant text, return null
+    //if (startIndent === -1) return null;
+
+    let endLine = startLine.number // Start with the same line
+    for (let i = startLine.number + 1; i <= totalLines; i++) {
+      const line = doc.line(i)
+      const lineIndent = line.text.search(/\S|$/) // Get indentation of the current line
+
+      if (lineIndent <= startIndent && line.text.trim() !== '') {
+        // Stop if indentation decreases
+        break
+      }
+
+      endLine = i // Extend the folding range
+    }
+
+    // Return the folding range (convert line numbers to positions)
+    return { from: startLine.to, to: doc.line(endLine).to }
+  } else {
+    // Nothing to fold
+    return null
+  }
+})
+
+export const nestedListFolding = foldService.of((state, lineStart, _lineEnd) => {
+  let { node } = syntaxTree(state).cursorAt(lineStart, 1)
+  if (
+    node.type.name === 'RmlChoice' || node.getChildren('RmlChoice').length && state.doc.lineAt(lineStart).text.includes('*')
+  ) {
+    const doc = state.doc
+    const startLine = doc.lineAt(lineStart) // Get the start line
+    const startIndent = startLine.text.search(/\S|$/) // First non-space character
+    const totalLines = doc.lines
+
+    // If the line is empty or doesn't have significant text, return null
+    //if (startIndent === -1) return null;
+
+    let endLine = startLine.number // Start with the same line
+    for (let i = startLine.number + 1; i <= totalLines; i++) {
+      const line = doc.line(i)
+      const lineIndent = line.text.search(/\S|$/) // Get indentation of the current line
+
+      if (lineIndent <= startIndent && line.text.trim() !== '') {
+        // Stop if indentation decreases
+        break
+      }
+
+      endLine = i // Extend the folding range
+    }
+
+    // Return the folding range (convert line numbers to positions)
+    return { from: startLine.to, to: doc.line(endLine).to }
+  } else {
+    // Nothing to fold
+    return null
+  }
+})

@@ -80,6 +80,8 @@ export const mdLint = linter(async view => {
   // the same warnings
   const diagnostics: Diagnostic[] = []
 
+  return diagnostics
+
   const config = view.state.field(configField, false)
   const emphasisMarker = config?.italicFormatting
   const boldMarker = config?.boldFormatting

@@ -49,7 +49,7 @@ import { formattingToolbar, footnoteHover, filePreview, urlHover } from './toolt
 import { type EditorConfiguration, configField } from './util/configuration'
 import { highlightRanges } from './plugins/highlight-ranges'
 import { jsonFolding } from './code-folding/json'
-import { markdownFolding } from './code-folding/markdown'
+import { conditionalFolding, markdownFolding, nestedListFolding } from './code-folding/markdown'
 import { json, jsonParseLinter } from '@codemirror/lang-json'
 import { softwrapVisualIndent } from './plugins/visual-indent'
 import { backgroundLayers } from './plugins/code-background'
@@ -323,13 +323,15 @@ export function getMarkdownExtensions (options: CoreExtensionOptions): Extension
     tocField,
     projectInfoField,
     markdownFolding, // Should be before footnoteGutter
+    conditionalFolding,
+    nestedListFolding,
     autocomplete,
     readabilityMode,
     formattingToolbar,
-    footnoteHover,
-    footnoteGutter, // Should be after markdownFolding
-    urlHover,
-    filePreview,
+    //footnoteHover,
+    //footnoteGutter, // Should be after markdownFolding
+    //urlHover,
+    //filePreview,
     backgroundLayers, // Add a background behind inline code and code blocks
     defaultContextMenu, // A default context menu
     softwrapVisualIndent, // Always indent visually

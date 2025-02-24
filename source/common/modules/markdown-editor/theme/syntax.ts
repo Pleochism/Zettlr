@@ -46,13 +46,13 @@ const markdownTheme = HighlightStyle.define([
   { tag: tags.list, class: 'cm-list' },
   { tag: tags.monospace, class: 'cm-fenced-code' },
   // Styling for YAML frontmatters
-  //{ tag: customTags.YAMLFrontmatter, class: 'cm-yaml-frontmatter' },
-  //{ tag: customTags.YAMLFrontmatterStart, class: 'cm-yaml-frontmatter-start' },
-  //{ tag: customTags.YAMLFrontmatterEnd, class: 'cm-yaml-frontmatter-end' },
+  { tag: customTags.YAMLFrontmatter, class: 'cm-yaml-frontmatter' },
+  { tag: customTags.YAMLFrontmatterStart, class: 'cm-yaml-frontmatter-start' },
+  { tag: customTags.YAMLFrontmatterEnd, class: 'cm-yaml-frontmatter-end' },
   // NOTE: Changes here must be reflected in util/custom-tags.ts and parser/markdown-parser.ts
   // Codeblocks
   { tag: tags.labelName, class: 'cm-info-string' }, // CodeInfo (info string)
-  { tag: tags.processingInstruction, class: 'cm-code-mark' }, // CodeMark (i.e. ```) but also table delimiters
+  //{ tag: tags.processingInstruction, class: 'cm-code-mark' }, // CodeMark (i.e. ```) but also table delimiters
   { tag: tags.monospace, class: 'cm-monospace' }, // CodeText (i.e. code block content)
   // Tables TODO
   // Footnotes
@@ -71,14 +71,35 @@ const markdownTheme = HighlightStyle.define([
   // RML
   { tag: customTags.RmlConditionalStart, class: 'rml-conditional-start' },
   { tag: customTags.RmlConditionalBranch, class: 'rml-conditional-branch' },
+  { tag: customTags.RmlConditionalKeyword, class: 'rml-conditional-keyword' },
   { tag: customTags.RmlPlayer, class: 'rml-player' },
   { tag: customTags.RmlPlayerName, class: 'rml-player-name' },
   { tag: customTags.RmlPlayerText, class: 'rml-player-text' },
-  { tag: customTags.RmlPlayerTextDialogue, class: 'rml-player-text-dialogue' },
+  { tag: customTags.RmlPlayerDialogue, class: 'rml-player-dialogue' },
+  { tag: customTags.RmlPlayerDialogueItalic, class: 'rml-player-dialogue-italic' },
+  { tag: customTags.RmlPlayerNarration, class: 'rml-player-narration' },
+  { tag: customTags.RmlPlayerNarrationItalic, class: 'rml-player-narration-italic' },
   { tag: customTags.RmlCharacter, class: 'rml-character' },
   { tag: customTags.RmlCharacterName, class: 'rml-character-name' },
   { tag: customTags.RmlCharacterText, class: 'rml-character-text' },
-  { tag: customTags.RmlCharacterTextDialogue, class: 'rml-character-text-dialogue' },
+  { tag: customTags.RmlCharacterDialogue, class: 'rml-character-dialogue' },
+  { tag: customTags.RmlCharacterDialogueItalic, class: 'rml-character-dialogue-italic' },
+  { tag: customTags.RmlCharacterNarration, class: 'rml-character-narration' },
+  { tag: customTags.RmlCharacterNarrationItalic, class: 'rml-character-narration-italic' },
+  { tag: customTags.RmlJump, class: 'rml-jump' },
+  { tag: customTags.RmlJumpMarker, class: 'rml-jump-marker' },
+  { tag: customTags.RmlJumpText, class: 'rml-jump-text' },
+  { tag: customTags.RmlCode, class: 'rml-code' },
+  { tag: customTags.RmlCodeKeyword, class: 'rml-code-keyword' },
+  { tag: customTags.RmlCall, class: 'rml-call' },
+  { tag: customTags.RmlChoice, class: 'rml-choice' },
+  { tag: customTags.RmlChoiceKeyword, class: 'rml-choice-keyword' },
+  { tag: customTags.RmlChoiceEmote, class: 'rml-choice-emote' },
+  { tag: customTags.RmlBlockJump, class: 'rml-blockjump' },
+  { tag: customTags.RmlBlockJumpStart, class: 'rml-blockjump-start' },
+  { tag: customTags.RmlBlockJumpEnd, class: 'rml-blockjump-end' },
+  { tag: customTags.RmlBlockJumpStartMark, class: 'rml-blockjump-start-mark' },
+  { tag: customTags.RmlBlockJumpEndMark, class: 'rml-blockjump-end-mark' },
 
   // Emphasis
   { tag: tags.emphasis, class: 'cm-emphasis' },

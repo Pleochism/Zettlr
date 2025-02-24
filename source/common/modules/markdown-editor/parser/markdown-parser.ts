@@ -23,7 +23,7 @@ import {
 } from '@codemirror/language'
 
 // Import all the languages, first the "new" ones
-import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { commonmarkLanguage, markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { php } from '@codemirror/lang-php'
 import { python } from '@codemirror/lang-python'
 import { css } from '@codemirror/lang-css'
@@ -80,7 +80,7 @@ import { highlightParser } from './highlight-parser'
 import { zknTagParser } from './zkn-tag-parser'
 
 // RMD parser
-import { conditionalStartParser, conditionalBranchParser, playerParser, characterParser } from './rml-parser'
+import { conditionalStartParser, conditionalBranchParser, playerParser, characterParser, codeParser, jumpParser, callParser, choiceParser, blockJumpStartParser, blockJumpEndParser } from './rml-parser'
 
 const codeLanguages: Array<{ mode: Language|LanguageDescription|null, selectors: string[] }> = [
   {
@@ -150,6 +150,7 @@ export interface MarkdownParserConfig {
   zknLinkParserConfig?: ZknLinkParserConfig
 }
 
+
 // TIP: Uncomment the following line to get a full list of all unique characters
 // that are capable of belonging to a selector
 // console.log([...new Set(codeLanguages.map(x => x.selectors).flat().join('').split(''))])
@@ -158,7 +159,7 @@ export interface MarkdownParserConfig {
 // capabilities
 export default function markdownParser (config?: MarkdownParserConfig): LanguageSupport {
   return markdown({
-    base: markdownLanguage,
+    base: commonmarkLanguage,
     codeLanguages: (infoString) => {
       // infostrings must start with the language and can be surrounded by curly
       // brackets. We just extract everything from the beginning that is an
@@ -177,6 +178,7 @@ export default function markdownParser (config?: MarkdownParserConfig): Language
 
       return null
     },
+    completeHTMLTags: false,
     extensions: {
       // yamlCodeParse is a wrapper that scans the document for the existence of
       // a YAML frontmatter and then parses its contents. NOTE: Since a single
@@ -192,37 +194,42 @@ export default function markdownParser (config?: MarkdownParserConfig): Language
         //footnoteRefParser,
         //gridTableParser,
         //pipeTableParser,
-        //rmdConditionalParser,
       ],
       parseInline: [
-        // Add inline parsers that add AST elements for various additional types
-        //inlineMathParser,
-        //footnoteParser,
-        //citationParser,
-        sloppyParser,
-        //zknLinkParser(config?.zknLinkParserConfig),
-        //zknTagParser,
-        //pandocAttributesParser,
         highlightParser,
+        choiceParser,
         playerParser,
         characterParser,
         conditionalStartParser,
         conditionalBranchParser,
+        codeParser,
+        jumpParser,
+        callParser,
+        blockJumpStartParser,
+        blockJumpEndParser
+        // Add inline parsers that add AST elements for various additional types
+        //inlineMathParser,
+        //footnoteParser,
+        //citationParser,
+        //sloppyParser,
+        //zknLinkParser(config?.zknLinkParserConfig),
+        //zknTagParser,
+        //pandocAttributesParser,
       ],
       // We have to notify the markdown parser about the additional Node Types
       // that the YAML block parser utilizes
       // NOTE: Changes here must be reflected in util/custom-tags.ts and theme/syntax.ts!
       defineNodes: [
-        /*{ name: 'YAMLFrontmatter' },
+        { name: 'YAMLFrontmatter' },
         { name: 'YAMLFrontmatterStart', style: customTags.YAMLFrontmatterStart },
         { name: 'YAMLFrontmatterEnd', style: customTags.YAMLFrontmatterEnd },
-        { name: 'Citation', style: customTags.Citation },*/
+        { name: 'Citation', style: customTags.Citation },
         { name: 'HighlightMark', style: customTags.HighlightMark },
         // NOTE: The convention {TagName}/... means that the corresponding styles
         // from the syntax theme get assigned to all child nodes that are contained
         // within this node as well. The default is to only style otherwise "empty"
         // spans of plain text.
-        /*{ name: 'HighlightContent', style: { 'HighlightContent/...': customTags.HighlightContent } },
+        { name: 'HighlightContent', style: { 'HighlightContent/...': customTags.HighlightContent } },
         { name: 'Footnote', style: customTags.Footnote },
         { name: 'FootnoteRef', style: customTags.FootnoteRef },
         { name: 'FootnoteRefLabel', style: customTags.FootnoteRefLabel },
@@ -234,18 +241,40 @@ export default function markdownParser (config?: MarkdownParserConfig): Language
         { name: 'ZknTag', style: customTags.ZknTag },
         { name: 'ZknTagContent', style: customTags.ZknTagContent },
         { name: 'PandocAttribute', style: customTags.PandocAttribute },
-        { name: 'PandocAttribute', style: customTags.PandocAttribute },*/
+        { name: 'PandocAttribute', style: customTags.PandocAttribute },
 
         { name: 'RmlConditionalStart', style: customTags.RmlConditionalStart },
         { name: 'RmlConditionalBranch', style: customTags.RmlConditionalBranch },
+        { name: 'RmlConditionalKeyword', style: customTags.RmlConditionalKeyword },
         { name: 'RmlPlayer', style: customTags.RmlPlayer },
         { name: 'RmlPlayerName', style: customTags.RmlPlayerName },
         { name: 'RmlPlayerText', style: customTags.RmlPlayerText },
-        { name: 'RmlPlayerTextDialogue', style: customTags.RmlPlayerTextDialogue },
+        { name: 'RmlPlayerDialogue', style: customTags.RmlPlayerDialogue },
+        { name: 'RmlPlayerDialogueItalic', style: customTags.RmlPlayerDialogueItalic },
+        { name: 'RmlPlayerNarration', style: customTags.RmlPlayerNarration },
+        { name: 'RmlPlayerNarrationItalic', style: customTags.RmlPlayerNarrationItalic },
         { name: 'RmlCharacter', style: customTags.RmlCharacter },
         { name: 'RmlCharacterName', style: customTags.RmlCharacterName },
         { name: 'RmlCharacterText', style: customTags.RmlCharacterText },
-        { name: 'RmlCharacterTextDialogue', style: customTags.RmlCharacterTextDialogue }
+        { name: 'RmlCharacterDialogue', style: customTags.RmlCharacterDialogue },
+        { name: 'RmlCharacterDialogueItalic', style: customTags.RmlCharacterDialogueItalic },
+        { name: 'RmlCharacterNarration', style: customTags.RmlCharacterNarration },
+        { name: 'RmlCharacterNarrationItalic', style: customTags.RmlCharacterNarrationItalic },
+        { name: 'RmlJump', style: customTags.RmlJump },
+        { name: 'RmlJumpMarker', style: customTags.RmlJumpMarker },
+        { name: 'RmlJumpText', style: customTags.RmlJumpText },
+        { name: 'RmlCall', style: customTags.RmlCall },
+        { name: 'RmlCode', style: customTags.RmlCode },
+        { name: 'RmlCodeKeyword', style: customTags.RmlCodeKeyword },
+        { name: 'RmlChoice', style: customTags.RmlChoice },
+        { name: 'RmlChoiceKeyword', style: customTags.RmlChoiceKeyword },
+        { name: 'RmlChoiceItalic', style: customTags.RmlChoiceItalic },
+        { name: 'RmlChoiceEmote', style: customTags.RmlChoiceEmote },
+        { name: 'RmlBlockJump', style: customTags.RmlBlockJump },
+        { name: 'RmlBlockJumpStart', style: customTags.RmlBlockJumpStart },
+        { name: 'RmlBlockJumpEnd', style: customTags.RmlBlockJumpEnd },
+        { name: 'RmlBlockJumpStartMark', style: customTags.RmlBlockJumpStartMark },
+        { name: 'RmlBlockJumpEndMark', style: customTags.RmlBlockJumpEndMark }
       ]
     }
   })
