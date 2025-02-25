@@ -370,10 +370,9 @@ export const choiceParser: InlineParser = {
     const italicRE = /(\*.+?\*)/gi
     const italics = ctx.text.slice(relativePosition + match[1].length).split('\n')[0].split('?')[0].split(italicRE)
     let iAdjust = pos + match[1].length
-    let iOffset = 0
     italics.forEach(x => {
       if (x.startsWith('*')) {
-        keywordElems.push(ctx.elt('RmlChoiceItalic', iAdjust, iAdjust + x.length + iOffset))
+        keywordElems.push(ctx.elt('RmlChoiceItalic', iAdjust, iAdjust + x.length))
       }
       iAdjust += x.length
     })

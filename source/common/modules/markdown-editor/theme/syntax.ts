@@ -94,6 +94,7 @@ const markdownTheme = HighlightStyle.define([
   { tag: customTags.RmlCall, class: 'rml-call' },
   { tag: customTags.RmlChoice, class: 'rml-choice' },
   { tag: customTags.RmlChoiceKeyword, class: 'rml-choice-keyword' },
+  { tag: customTags.RmlChoiceItalic, class: 'rml-choice-italic' },
   { tag: customTags.RmlChoiceEmote, class: 'rml-choice-emote' },
   { tag: customTags.RmlBlockJump, class: 'rml-blockjump' },
   { tag: customTags.RmlBlockJumpStart, class: 'rml-blockjump-start' },
