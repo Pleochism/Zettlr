@@ -57,7 +57,7 @@ class CharacterWidget extends WidgetType {
     elem.innerText = this.name
     elem.style.color = colour
     elem.classList.add('rml-character-name')
-    elem.style.marginRight = `${Math.max(0, view.state.facet(EditorState.tabSize) - this.name.length + 1)/2}em`
+    elem.style.marginRight = `${Math.max(0, view.state.facet(EditorState.tabSize) - this.name.length + 1)/2}rem`
     return elem
   }
 }
@@ -86,9 +86,10 @@ class PlayerWidget extends WidgetType {
   toDOM (view: EditorView): HTMLElement {
     const elem = document.createElement('span')
 
-    elem.innerText = '〰'
+    elem.innerText = '〰 '
     elem.style.color = 'white'
-    elem.style.marginRight = `${Math.max(0, view.state.facet(EditorState.tabSize) - this.name.length + 1)/2}em`
+    elem.classList.add('rml-player-name')
+    elem.style.marginRight = `${(Math.max(0, view.state.facet(EditorState.tabSize) - this.name.length + 1)/2)}rem`
     return elem
   }
 }
